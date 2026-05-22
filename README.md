@@ -9,6 +9,7 @@ Nectar is a high-performance, container-native Python client built for developer
 [![PyPI version](https://img.shields.io/pypi/v/hive-nectar.svg)](https://pypi.python.org/pypi/hive-nectar/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/hive-nectar.svg)](https://pypi.python.org/pypi/hive-nectar/)
 [![License](https://img.shields.io/github/license/thecrazygm/hive-nectar.svg)](LICENSE.txt)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/TheCrazyGM/hive-nectar)
 
 ---
 
