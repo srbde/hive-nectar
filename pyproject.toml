@@ -4,7 +4,7 @@ requires = [ "hatchling" ]
 
 [project]
 name = "hive-nectar"
-version = "0.2.16"
+version = "1.0.0"
 description = "Hive Blockchain Python Library"
 readme = "README.md"
 keywords = [ "api", "hive", "library", "rpc" ]
@@ -31,15 +31,13 @@ dependencies = [
   "appdirs",
   "asn1crypto",
   "click",
+  "coincurve==20.0.0",
   "cryptography",
   "diff-match-patch",
-  "ecdsa",
   "httpx>=0.28.1",
   "prettytable",
-  "pycryptodomex",
   "requests>=2.32.4",
   "ruamel-yaml",
-  "scrypt",
   "types-requests",
 ]
 urls."Bug Tracker" = "https://github.com/thecrazygm/hive-nectar/issues"

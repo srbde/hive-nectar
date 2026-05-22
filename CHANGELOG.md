@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 - 2026-05-22
+
+### Major Changes
+
+- **Cryptography layer modernization**: Removed all legacy cryptography library dependencies (`ecdsa`, `pycryptodomex`, `scrypt`) and replaced them with standard `cryptography` and `coincurve==20.0.0` for key derivation, signing, and encryption.
+- **Docker/Kubernetes Support**: Implemented a transparent fallback to in-memory (RAM) SQLite database storage (using a shared cache URI) if writing to the local data directory or creating the database file fails (e.g., in unprivileged Docker containers or read-only filesystems).
+
+### Maintenance
 
 - **Docs**: Regenerate the Sphinx API reference from the `src/` layout so the documentation sidebar lists package modules instead of `src`.
 

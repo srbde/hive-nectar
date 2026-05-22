@@ -41,7 +41,8 @@ class SQLiteFile:
 
     data_dir: Path
     storageDatabase: str
-    sqlite_file: Path
+    sqlite_file: Union[Path, str]
+    use_memory: bool
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         appauthor = "nectar"
@@ -53,18 +54,23 @@ class SQLiteFile:
         else:
             self.storageDatabase = f"{appname}.sqlite"
 
-        self.sqlite_file = self.data_dir / self.storageDatabase
-
-        """ Ensure that the directory in which the data is stored
-            exists
-        """
-        if self.data_dir.is_dir():  # pragma: no cover
-            return
-        else:  # pragma: no cover
-            self.data_dir.mkdir(parents=True)
+        self.use_memory = False
+        try:
+            if not self.data_dir.is_dir():  # pragma: no cover
+                self.data_dir.mkdir(parents=True)
+            self.sqlite_file = self.data_dir / self.storageDatabase
+        except (OSError, PermissionError) as e:  # pragma: no cover
+            self.use_memory = True
+            self.sqlite_file = f"file:{self.storageDatabase}?mode=memory&cache=shared"
+            log.warning(
+                f"Could not create storage directory {self.data_dir} ({e}). "
+                f"Falling back to in-memory SQLite database: {self.sqlite_file}"
+            )
 
     def sqlite3_backup(self, backupdir: Union[str, Path]) -> None:
         """Create timestamped database copy"""
+        if getattr(self, "use_memory", False):
+            return
         backup_path = Path(backupdir)
         if not backup_path.is_dir():
             backup_path.mkdir()
@@ -73,9 +79,12 @@ class SQLiteFile:
         )
         self.sqlite3_copy(self.sqlite_file, backup_file)
 
-    def sqlite3_copy(self, src: Path, dst: Path) -> None:
+    def sqlite3_copy(self, src: Union[Path, str], dst: Union[Path, str]) -> None:
         """Copy sql file from src to dst"""
-        if not src.is_file():
+        if getattr(self, "use_memory", False):
+            return
+        src_path = Path(src)
+        if not src_path.is_file():
             return
         connection = sqlite3.connect(str(self.sqlite_file))
         try:
@@ -92,6 +101,8 @@ class SQLiteFile:
 
     def recover_with_latest_backup(self, backupdir: Union[str, Path] = "backups") -> None:
         """Replace database with latest backup"""
+        if getattr(self, "use_memory", False):
+            return
         file_date = 0
         backup_path = Path(backupdir)
         if not backup_path.is_dir():
@@ -110,6 +121,8 @@ class SQLiteFile:
 
     def clean_data(self, backupdir: Union[str, Path] = "backups") -> None:
         """Delete files older than 70 days"""
+        if getattr(self, "use_memory", False):
+            return
         log.info("Cleaning up old backups")
         # Allow either a Path or a directory name relative to data_dir
         backup_path = Path(backupdir)
@@ -125,6 +138,8 @@ class SQLiteFile:
 
     def refreshBackup(self) -> None:
         """Make a new backup"""
+        if getattr(self, "use_memory", False):
+            return
         backupdir = self.data_dir / "backups"
         self.sqlite3_backup(backupdir)
         # Clean by logical name so clean_data resolves under data_dir correctly
@@ -142,10 +157,11 @@ class SQLiteCommon:
         * ``sqlite_file``: Path to the SQLite Database file
     """
 
-    sqlite_file: Path
+    sqlite_file: Union[Path, str]
+    use_memory: bool
 
     def sql_fetchone(self, query: Tuple[str, Tuple]) -> Optional[Tuple]:
-        connection = sqlite3.connect(str(self.sqlite_file))
+        connection = sqlite3.connect(str(self.sqlite_file), uri=getattr(self, "use_memory", False))
         try:
             cursor = connection.cursor()
             cursor.execute(*query)
@@ -155,7 +171,7 @@ class SQLiteCommon:
         return result
 
     def sql_fetchall(self, query: Tuple[str, Tuple]) -> list:
-        connection = sqlite3.connect(str(self.sqlite_file))
+        connection = sqlite3.connect(str(self.sqlite_file), uri=getattr(self, "use_memory", False))
         try:
             cursor = connection.cursor()
             cursor.execute(*query)
@@ -165,7 +181,7 @@ class SQLiteCommon:
         return results
 
     def sql_execute(self, query: Tuple[str, Tuple], lastid: bool = False) -> Optional[int]:
-        connection = sqlite3.connect(str(self.sqlite_file))
+        connection = sqlite3.connect(str(self.sqlite_file), uri=getattr(self, "use_memory", False))
         try:
             cursor = connection.cursor()
             cursor.execute(*query)
@@ -213,8 +229,23 @@ class SQLiteStore(SQLiteFile, SQLiteCommon, StoreInterface):
         StoreInterface.__init__(self, *args, **kwargs)
         if self.__tablename__ is None or self.__key__ is None or self.__value__ is None:
             raise ValueError("Values missing for tablename, key, or value!")
-        if not self.exists():  # pragma: no cover
-            self.create()
+
+        if getattr(self, "use_memory", False):
+            self._keep_alive = sqlite3.connect(str(self.sqlite_file), uri=True)
+
+        try:
+            if not self.exists():  # pragma: no cover
+                self.create()
+        except (sqlite3.Error, OSError) as e:
+            log.warning(
+                f"Database connection or creation failed for file {self.sqlite_file}: {e}. "
+                "Falling back to an in-memory SQLite database."
+            )
+            self.use_memory = True
+            self.sqlite_file = f"file:{self.storageDatabase}?mode=memory&cache=shared"
+            self._keep_alive = sqlite3.connect(str(self.sqlite_file), uri=True)
+            if not self.exists():
+                self.create()
 
     def _haveKey(self, key: str) -> bool:
         """Is the key `key` available?"""

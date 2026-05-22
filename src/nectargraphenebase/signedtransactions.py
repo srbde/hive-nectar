@@ -4,8 +4,8 @@ from binascii import hexlify, unhexlify
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Union
 
-import ecdsa
 from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 
 from .account import PublicKey
 from .chains import known_chains
@@ -97,16 +97,11 @@ class Signed_Transaction(GrapheneObject):
     def getOperationKlass(self) -> type[Operation]:
         return Operation
 
-    def derSigToHexSig(self, s: bytes) -> str:
+    def derSigToHexSig(self, s: Union[str, bytes]) -> str:
         """Format DER to HEX signature"""
-        s, junk = ecdsa.der.remove_sequence(unhexlify(s))
-        if junk:
-            log.debug("JUNK: %s", hexlify(junk).decode("ascii"))
-        if not (junk == b""):
-            raise AssertionError()
-        x, s = ecdsa.der.remove_integer(s)
-        y, s = ecdsa.der.remove_integer(s)
-        return "{:064x}{:064x}".format(x, y)
+        der_bytes = unhexlify(s)
+        r, s_val = decode_dss_signature(der_bytes)
+        return "{:064x}{:064x}".format(r, s_val)
 
     def getKnownChains(self) -> Dict[str, Any]:
         return known_chains
@@ -161,7 +156,7 @@ class Signed_Transaction(GrapheneObject):
             if recover_parameter:
                 try:
                     p = verify_message(self.message, bytes(signature))
-                except (ValueError, AssertionError, ecdsa.keys.BadSignatureError, InvalidSignature):
+                except (ValueError, AssertionError, InvalidSignature):
                     p = None
 
             if p is None:
@@ -174,7 +169,6 @@ class Signed_Transaction(GrapheneObject):
                     except (
                         ValueError,
                         AssertionError,
-                        ecdsa.keys.BadSignatureError,
                         InvalidSignature,
                     ) as e:
                         log.debug("Signature recovery failed for parameter %d: %s", i, e)

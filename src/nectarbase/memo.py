@@ -3,7 +3,8 @@ import struct
 from binascii import hexlify, unhexlify
 from typing import Any, Tuple
 
-from Cryptodome.Cipher import AES
+import coincurve
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from nectargraphenebase.account import PublicKey
 from nectargraphenebase.base58 import base58decode, base58encode
@@ -12,6 +13,22 @@ from nectargraphenebase.types import varintdecode
 from .objects import Memo
 
 default_prefix = "STM"
+
+
+class CryptographyAESWrapper:
+    def __init__(self, key: bytes, iv: bytes) -> None:
+        self.key = key
+        self.iv = iv
+
+    def encrypt(self, data: bytes) -> bytes:
+        cipher = Cipher(algorithms.AES(self.key), modes.CBC(self.iv))
+        encryptor = cipher.encryptor()
+        return encryptor.update(data) + encryptor.finalize()
+
+    def decrypt(self, data: bytes) -> bytes:
+        cipher = Cipher(algorithms.AES(self.key), modes.CBC(self.iv))
+        decryptor = cipher.decryptor()
+        return decryptor.update(data) + decryptor.finalize()
 
 
 def get_shared_secret(priv: Any, pub: PublicKey) -> str:
@@ -23,12 +40,12 @@ def get_shared_secret(priv: Any, pub: PublicKey) -> str:
     The shared secret is generated such that::
         Pub(Alice) * Priv(Bob) = Pub(Bob) * Priv(Alice)
     """
-    pub_point = pub.point()
-    priv_point = int(repr(priv), 16)
-    res = pub_point * priv_point
-    res_hex = "%032x" % res.x()
-    # Zero padding
-    res_hex = "0" * (64 - len(res_hex)) + res_hex
+    priv_bytes = unhexlify(repr(priv))
+    pub_bytes = bytes(pub)
+    cc_pub = coincurve.PublicKey(pub_bytes)
+    cc_shared_pub = cc_pub.multiply(priv_bytes)
+    cc_uncompressed = cc_shared_pub.format(compressed=False)
+    res_hex = cc_uncompressed[1:33].hex()
     return res_hex
 
 
@@ -47,7 +64,7 @@ def init_aes(shared_secret: str, nonce: int) -> Any:
     " AES "
     key = unhexlify(seed_digest[0:64])
     iv = unhexlify(seed_digest[64:96])
-    return AES.new(key, AES.MODE_CBC, iv)
+    return CryptographyAESWrapper(key, iv)
 
 
 def init_aes_bts(shared_secret: str, nonce: int) -> Any:
@@ -65,7 +82,7 @@ def init_aes_bts(shared_secret: str, nonce: int) -> Any:
     " AES "
     key = unhexlify(seed_digest[0:64])
     iv = unhexlify(seed_digest[64:96])
-    return AES.new(key, AES.MODE_CBC, iv)
+    return CryptographyAESWrapper(key, iv)
 
 
 def init_aes2(shared_secret: str, nonce: int) -> Tuple[Any, int]:
@@ -84,7 +101,7 @@ def init_aes2(shared_secret: str, nonce: int) -> Tuple[Any, int]:
     # AES
     key = unhexlify(encryption_key[0:64])
     iv = unhexlify(encryption_key[64:96])
-    return AES.new(key, AES.MODE_CBC, iv), check
+    return CryptographyAESWrapper(key, iv), check
 
 
 def _pad(s: bytes, BS: int) -> bytes:

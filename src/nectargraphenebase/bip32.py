@@ -13,39 +13,11 @@ from binascii import hexlify, unhexlify
 from hashlib import sha256
 from typing import List, Optional, Tuple, Union
 
-try:
-    import ecdsa
-    from ecdsa.curves import SECP256k1
-    from ecdsa.ellipticcurve import INFINITY as INFINITY_CONST
-    from ecdsa.ellipticcurve import Point as PointClass
-    from ecdsa.numbertheory import square_root_mod_prime as sqrt_mod
-
-    _HAS_ELLIPTIC_CURVE = True
-except ImportError:
-    # Fallback for older versions
-    import ecdsa
-    from ecdsa.curves import SECP256k1
-    from ecdsa.numbertheory import square_root_mod_prime as sqrt_mod
-
-    PointClass = None  # type: ignore
-    INFINITY_CONST = None  # type: ignore
-    _HAS_ELLIPTIC_CURVE = False
+import coincurve
 
 from nectargraphenebase.base58 import base58CheckDecode, base58CheckEncode
 
-VerifyKey = ecdsa.VerifyingKey.from_public_point
-SigningKey = ecdsa.SigningKey.from_string
-if _HAS_ELLIPTIC_CURVE and PointClass is not None:
-    PointObject = PointClass
-else:
-    PointObject = ecdsa.ellipticcurve.Point  # type: ignore
-CURVE_GEN = ecdsa.SECP256k1.generator  # PointJacobi class
-CURVE_ORDER = CURVE_GEN.order()  # int
-FIELD_ORDER = SECP256k1.curve.p()  # int
-if _HAS_ELLIPTIC_CURVE and INFINITY_CONST is not None:
-    INFINITY = INFINITY_CONST
-else:
-    INFINITY = ecdsa.ellipticcurve.INFINITY  # type: ignore
+CURVE_ORDER = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 
 MIN_ENTROPY_LEN = 128  # bits
 BIP32_HARDEN = 0x80000000  # choose from hardened set of child keys
@@ -152,15 +124,7 @@ class BIP32Key:
         if not is_pubkey:
             secret = secret[1:]
         else:
-            # Recover public curve point from compressed key
-            lsb = secret[0] & 1
-            x = int.from_bytes(secret[1:], "big")
-            ys = (x**3 + 7) % FIELD_ORDER  # y^2 = x^3 + 7 mod p
-            y = sqrt_mod(ys, FIELD_ORDER)
-            if y & 1 != lsb:
-                y = FIELD_ORDER - y
-            point = PointObject(SECP256k1.curve, x, y)
-            secret = VerifyKey(point, curve=SECP256k1)
+            secret = coincurve.PublicKey(secret)
 
         key = BIP32Key(
             secret=secret,
@@ -178,7 +142,7 @@ class BIP32Key:
     # Normal class initializer
     def __init__(
         self,
-        secret: Union[bytes, ecdsa.VerifyingKey],
+        secret: Union[bytes, coincurve.PublicKey],
         chain: bytes,
         depth: int,
         index: int,
@@ -190,8 +154,8 @@ class BIP32Key:
         Create a public or private BIP32Key using key material and chain code.
 
         secret   This is the source material to generate the keypair, either a
-                 32-byte str representation of a private key, or the ECDSA
-                 library object representing a public key.
+                 32-byte str representation of a private key, or the coincurve
+                 PublicKey object representing a public key.
 
         chain    This is a 32-byte str representation of the chain code
 
@@ -206,18 +170,22 @@ class BIP32Key:
         """
 
         self.public = public
-        if public is False:
-            self.k = SigningKey(secret, curve=SECP256k1)
-            self.K = self.k.get_verifying_key()
-        else:
-            self.k = None
-            self.K = secret
-
         self.C = chain
         self.depth = depth
         self.index = index
         self.parent_fpr = fpr
         self.testnet = testnet
+        if public is False:
+            if not isinstance(secret, bytes):
+                raise TypeError("Secret must be bytes for private keys")
+            self.k = coincurve.PrivateKey(secret)
+            self.K = self.k.public_key
+        else:
+            self.k = None
+            if isinstance(secret, bytes):
+                self.K = coincurve.PublicKey(secret)
+            else:
+                self.K = secret
 
     # Internal methods not intended to be called externally
     #
@@ -247,7 +215,7 @@ class BIP32Key:
         if i & BIP32_HARDEN:
             if self.k is None:
                 raise Exception("No private key available for hardened derivation")
-            data = b"\0" + self.k.to_string() + i_str
+            data = b"\0" + self.k.secret + i_str
         else:
             data = self.PublicKey() + i_str
         # Get HMAC of data
@@ -255,11 +223,11 @@ class BIP32Key:
 
         # Construct new key material from Il and current private key
         Il_int = int.from_bytes(Il, "big")
-        if Il_int > CURVE_ORDER:
+        if Il_int >= CURVE_ORDER:
             return None
         if self.k is None:
             return None
-        pvt_int = int.from_bytes(self.k.to_string(), "big")
+        pvt_int = int.from_bytes(self.k.secret, "big")
         k_int = (Il_int + pvt_int) % CURVE_ORDER
         if k_int == 0:
             return None
@@ -296,25 +264,16 @@ class BIP32Key:
         # Get HMAC of data
         (Il, Ir) = self.hmac(data)
 
-        # Construct curve point Il*G+K
         Il_int = int.from_bytes(Il, "big")
         if Il_int >= CURVE_ORDER:
             return None
         if self.K is None:
             return None
-        # Get the curve point from VerifyingKey
-        try:
-            # Try newer ecdsa version approach
-            point = self.K.point  # type: ignore[attr-defined]
-        except AttributeError:
-            # Fallback for older versions
-            point = self.K.pubkey.point  # type: ignore[attr-defined]
-        curve_point = Il_int * CURVE_GEN + point
-        if curve_point == INFINITY:
-            return None
 
-        # Retrieve public key based on curve point
-        K_i = VerifyKey(curve_point, curve=SECP256k1)
+        try:
+            K_i = self.K.add(Il)
+        except ValueError:
+            return None
 
         # Construct and return a new BIP32Key
         return BIP32Key(
@@ -352,25 +311,13 @@ class BIP32Key:
             raise Exception("Publicly derived deterministic keys have no private half")
         if self.k is None:
             raise Exception("No private key available")
-        return self.k.to_string()
+        return self.k.secret
 
     def PublicKey(self) -> bytes:
         """Return compressed public key encoding"""
         if self.K is None:
             raise Exception("No public key available")
-        # Get the curve point from VerifyingKey
-        try:
-            # Try newer ecdsa version approach
-            point = self.K.point  # type: ignore[attr-defined]
-        except AttributeError:
-            # Fallback for older versions
-            point = self.K.pubkey.point  # type: ignore[attr-defined]
-        padx = int(point.x()).to_bytes(32, "big")
-        if int(point.y()) & 1:
-            ck = b"\3" + padx
-        else:
-            ck = b"\2" + padx
-        return ck
+        return self.K.format(compressed=True)
 
     def ChainCode(self) -> bytes:
         """Return chain code as string"""
@@ -418,7 +365,7 @@ class BIP32Key:
         if self.k is None:
             raise Exception("No private key available")
         addressversion = b"\x80" if not self.testnet else b"\xef"
-        raw = self.k.to_string() + b"\x01"  # Always compressed
+        raw = self.k.secret + b"\x01"  # Always compressed
         # return check_encode(addressversion + raw)
         payload = hexlify(raw).decode("ascii")
         return base58CheckEncode(int.from_bytes(addressversion, "big"), payload)
