@@ -66,16 +66,6 @@ dev = [
   "tomli",
 ]
 
-[tool.uv.build-backend]
-module-name = [
-  "nectar",
-  "nectarapi",
-  "nectarbase",
-  "nectargraphenebase",
-  "nectarstorage",
-]
-namespace = true
-
 [tool.uv]
 publish-url = "https://test.pypi.org/legacy/"
 
