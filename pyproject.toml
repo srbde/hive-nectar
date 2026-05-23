@@ -46,7 +46,6 @@ module-name = [
   "nectargraphenebase",
   "nectarstorage",
 ]
-namespace = true
 
 [project.urls]
 "Bug Tracker" = "https://github.com/srbde/hive-nectar/issues"
