@@ -1,6 +1,6 @@
 [build-system]
-build-backend = "hatchling.build"
-requires = ["hatchling"]
+requires = ["uv_build>=0.11.16,<0.12"]
+build-backend = "uv_build"
 
 [project]
 name = "hive-nectar"
@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "Hive Blockchain Python Library"
 readme = "README.md"
 keywords = ["api", "hive", "library", "rpc"]
-license = { file = "LICENSE.txt" }
+license = { file = "LICENSE" }
 maintainers = [{ name = "Michael Garcia", email = "thecrazygm@gmail.com" }]
 authors = [{ name = "Michael Garcia", email = "thecrazygm@gmail.com" }]
 requires-python = ">=3.10"
@@ -16,7 +16,6 @@ classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Intended Audience :: Financial and Insurance Industry",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
@@ -37,12 +36,15 @@ dependencies = [
   "httpx2>=2.2.0",
   "prettytable",
   "ruamel-yaml",
-  "types-requests",
 ]
-urls."Bug Tracker" = "https://github.com/srbde/hive-nectar/issues"
-urls."Download" = "https://github.com/srbde/hive-nectar/tarball/0.1.0b"
-urls."Homepage" = "http://www.github.com/srbde/hive-nectar"
-scripts.hive-nectar = "nectar.cli:cli"
+
+[project.urls]
+"Bug Tracker" = "https://github.com/srbde/hive-nectar/issues"
+Download = "https://github.com/srbde/hive-nectar/tarball/0.1.0b"
+Homepage = "http://www.github.com/srbde/hive-nectar"
+
+[project.scripts]
+hive-nectar = "nectar.cli:cli"
 
 [dependency-groups]
 dev = [
@@ -51,37 +53,35 @@ dev = [
   "codecov",
   "coverage",
   "doc8",
-  "mock",
   "parameterized",
   "pytest",
   "pytest-cov",
   "pytest-mock",
+  "pytest-xdist",
   "readme-renderer",
   "ruff",
   "sphinx",
   "sphinx-click",
   "sphinx-rtd-theme",
   "tomli",
-  "tox",
 ]
 
-[tool.hatch]
-build.targets.wheel.packages = [
-  "src/nectar",
-  "src/nectarapi",
-  "src/nectarbase",
-  "src/nectargraphenebase",
-  "src/nectargrapheneapi",
-  "src/nectarstorage",
+[tool.uv.build-backend]
+module-name = [
+  "nectar",
+  "nectarapi",
+  "nectarbase",
+  "nectargraphenebase",
+  "nectarstorage",
 ]
+namespace = true
 
 [tool.uv]
-default-groups = []
+publish-url = "https://test.pypi.org/legacy/"
 
 [[tool.uv.index]]
 name = "testpypi"
 url = "https://test.pypi.org/simple/"
-publish-url = "https://test.pypi.org/legacy/"
 explicit = true
 
 [tool.uv.sources]
@@ -110,7 +110,7 @@ lint.exclude = [
 lint.per-file-ignores."**/{tests,docs,tools}/*" = ["E402"]
 lint.per-file-ignores."__init__.py" = ["E402"]
 
-[tool.pytest]
+[tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 norecursedirs = [
@@ -123,11 +123,7 @@ norecursedirs = [
   "build",
   "examples",
 ]
-addopts = ["-rw", "--doctest-modules"]
-
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
+addopts = ["-rw", "--doctest-modules", "-n", "auto"]
+markers = [
+  "network: tests that require network access to live blockchain nodes",
+]
