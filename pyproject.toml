@@ -37,6 +37,7 @@ dependencies = [
   "prettytable",
   "ruamel-yaml",
 ]
+
 [tool.uv.build-backend]
 module-name = [
   "nectar",
@@ -58,16 +59,11 @@ hive-nectar = "nectar.cli:cli"
 [dependency-groups]
 dev = [
   "build",
-  "codacy-coverage",
-  "codecov",
   "coverage",
-  "doc8",
   "parameterized",
   "pytest",
-  "pytest-cov",
   "pytest-mock",
   "pytest-xdist",
-  "readme-renderer",
   "ruff",
   "sphinx",
   "sphinx-click",
@@ -89,25 +85,18 @@ coincurve = { git = "https://github.com/ofek/coincurve", rev = "master" }
 [tool.ruff]
 target-version = "py310"
 line-length = 100
-format.indent-style = "space"
-format.quote-style = "double"
-lint.select = ["E", "F", "I", "W"]
-lint.ignore = ["E501"]
-lint.exclude = [
-  "*.egg-info",
-  "*.pyc",
-  ".cache",
-  ".eggs",
-  ".git",
-  ".tox",
-  "__pycache__",
-  "build",
-  "dist",
-  "docs/source/conf.py",
-  "tests/fixtures/*",
-]
-lint.per-file-ignores."**/{tests,docs,tools}/*" = ["E402"]
-lint.per-file-ignores."__init__.py" = ["E402"]
+
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "double"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/{tests,docs,tools}/*" = ["E402"]
+"__init__.py" = ["E402"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
