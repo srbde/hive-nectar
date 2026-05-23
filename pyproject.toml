@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "Hive Blockchain Python Library"
 readme = "README.md"
 keywords = ["api", "hive", "library", "rpc"]
-license = { file = "LICENSE" }
+license = "MIT"
 maintainers = [{ name = "Michael Garcia", email = "thecrazygm@gmail.com" }]
 authors = [{ name = "Michael Garcia", email = "thecrazygm@gmail.com" }]
 requires-python = ">=3.10"
