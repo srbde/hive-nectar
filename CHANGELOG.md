@@ -6,6 +6,7 @@
 
 - **Cryptography layer modernization**: Removed all legacy cryptography library dependencies (`ecdsa`, `pycryptodomex`, `scrypt`) and replaced them with standard `cryptography` and `coincurve==20.0.0` for key derivation, signing, and encryption.
 - **Docker/Kubernetes Support**: Implemented a transparent fallback to in-memory (RAM) SQLite database storage (using a shared cache URI) if writing to the local data directory or creating the database file fails (e.g., in unprivileged Docker containers or read-only filesystems).
+- **HTTPX2**: With HTTPX itself seeing limited activity recently, Pydantic is picking up stewardship under the HTTPX2 name so that users have a reliably maintained path forward - including timely security updates for a library that sits in the critical path of so many production systems.
 
 ### Maintenance
 

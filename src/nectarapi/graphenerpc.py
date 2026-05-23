@@ -5,9 +5,9 @@ import re
 import threading
 from typing import Any, Dict, List, Optional, Union
 
-import httpx
-from httpx import ConnectError as HttpxConnectError
-from httpx import HTTPStatusError, RequestError, TimeoutException
+import httpx2
+from httpx2 import ConnectError as HttpxConnectError
+from httpx2 import HTTPStatusError, RequestError, TimeoutException
 
 from nectargraphenebase.chains import known_chains
 from nectargraphenebase.version import version as nectar_version
@@ -30,8 +30,8 @@ from .rpcutils import get_query
 log = logging.getLogger(__name__)
 
 
-_shared_httpx_client: httpx.Client | None = None
-_proxy_clients: Dict[str, httpx.Client] = {}
+_shared_httpx_client: httpx2.Client | None = None
+_proxy_clients: Dict[str, httpx2.Client] = {}
 _client_lock = threading.Lock()
 
 
@@ -48,7 +48,7 @@ def _cleanup_shared_client() -> None:
 atexit.register(_cleanup_shared_client)
 
 
-def shared_httpx_client(proxy: Optional[str] = None) -> httpx.Client:
+def shared_httpx_client(proxy: Optional[str] = None) -> httpx2.Client:
     """
     Return a process-wide httpx client with connection pooling.
 
@@ -59,12 +59,12 @@ def shared_httpx_client(proxy: Optional[str] = None) -> httpx.Client:
     if proxy:
         with _client_lock:
             if proxy not in _proxy_clients:
-                _proxy_clients[proxy] = httpx.Client(http2=False, proxy=proxy)
+                _proxy_clients[proxy] = httpx2.Client(http2=False, proxy=proxy)
         return _proxy_clients[proxy]
 
     with _client_lock:
         if _shared_httpx_client is None:
-            _shared_httpx_client = httpx.Client(http2=False)
+            _shared_httpx_client = httpx2.Client(http2=False)
     return _shared_httpx_client
 
 
@@ -128,7 +128,7 @@ class GrapheneRPC:
         self.user = user
         self.password = password
         self.url = None
-        self.session: Optional[httpx.Client] = None
+        self.session: Optional[httpx2.Client] = None
         self.rpc_queue = []
         if kwargs.get("autoconnect", True):
             self.rpcconnect()
@@ -202,7 +202,7 @@ class GrapheneRPC:
                 }
             break
 
-    def request_send(self, payload: bytes) -> httpx.Response:
+    def request_send(self, payload: bytes) -> httpx2.Response:
         """
         Send the prepared RPC payload to the currently connected node via HTTP POST.
 
@@ -221,9 +221,9 @@ class GrapheneRPC:
             raise RPCConnection("Session must be initialized")
         if self.url is None:
             raise RPCConnection("URL must be initialized")
-        auth: httpx.Auth | None = None
+        auth: httpx2.Auth | None = None
         if self.user is not None and self.password is not None:
-            auth = httpx.BasicAuth(self.user, self.password)
+            auth = httpx2.BasicAuth(self.user, self.password)
         post_kwargs: Dict[str, Any] = {
             "content": payload,
             "headers": self.headers,
@@ -481,7 +481,7 @@ class GrapheneRPC:
             raise RPCConnection("RPC is not connected!")
 
         reply = {}
-        response: httpx.Response | None = None
+        response: httpx2.Response | None = None
         while True:
             self.nodes.increase_error_cnt_call()
             try:

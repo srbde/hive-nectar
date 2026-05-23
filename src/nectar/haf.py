@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Any, Dict, Optional
 
-import httpx
+import httpx2
 
 from nectar.instance import shared_blockchain_instance
 
@@ -85,15 +85,15 @@ class HAF:
 
         try:
             timeout = kwargs.pop("timeout", self._timeout)
-            with httpx.Client(timeout=timeout) as client:
+            with httpx2.Client(timeout=timeout) as client:
                 response = client.request(method, url, headers=headers, **kwargs)
                 response.raise_for_status()
                 return response.json()
 
-        except httpx.RequestError as e:
+        except httpx2.RequestError as e:
             log.error(f"Request failed for {url}: {e}")
             raise
-        except (httpx.HTTPStatusError, json.JSONDecodeError) as e:
+        except (httpx2.HTTPStatusError, json.JSONDecodeError) as e:
             log.error(f"Invalid response from {url}: {e}")
             raise ValueError(f"Invalid response from API: {e}")
 
@@ -128,7 +128,7 @@ class HAF:
             log.debug(f"Retrieved reputation for account: {account}")
             return response
 
-        except httpx.RequestError as e:
+        except httpx2.RequestError as e:
             log.warning(f"Failed to retrieve reputation for account {account}: {e}")
             return None
         except Exception as e:
@@ -201,7 +201,7 @@ class HAF:
             log.debug(f"Retrieved balances for account: {account}")
             return response
 
-        except httpx.RequestError as e:
+        except httpx2.RequestError as e:
             log.warning(f"Failed to retrieve balances for account {account}: {e}")
             return None
         except Exception as e:
@@ -235,7 +235,7 @@ class HAF:
             log.debug(f"Retrieved delegations for account: {account}")
             return response
 
-        except httpx.RequestError as e:
+        except httpx2.RequestError as e:
             log.warning(f"Failed to retrieve delegations for account {account}: {e}")
             return None
         except Exception as e:
@@ -269,7 +269,7 @@ class HAF:
             log.debug(f"Retrieved recurrent transfers for account: {account}")
             return response
 
-        except httpx.RequestError as e:
+        except httpx2.RequestError as e:
             log.warning(f"Failed to retrieve recurrent transfers for account {account}: {e}")
             return None
         except Exception as e:
@@ -295,7 +295,7 @@ class HAF:
             log.debug("Retrieved reputation tracker version")
             return response
 
-        except httpx.RequestError as e:
+        except httpx2.RequestError as e:
             log.warning(f"Failed to retrieve reputation version: {e}")
             return None
         except Exception as e:
@@ -321,7 +321,7 @@ class HAF:
             log.debug("Retrieved last synced block for reputation tracker")
             return response
 
-        except httpx.RequestError as e:
+        except httpx2.RequestError as e:
             log.warning(f"Failed to retrieve last synced block: {e}")
             return None
         except Exception as e:
@@ -347,7 +347,7 @@ class HAF:
             log.debug("Retrieved balance tracker version")
             return response
 
-        except httpx.RequestError as e:
+        except httpx2.RequestError as e:
             log.warning(f"Failed to retrieve balance version: {e}")
             return None
         except Exception as e:
@@ -373,7 +373,7 @@ class HAF:
             log.debug("Retrieved last synced block for balance tracker")
             return response
 
-        except httpx.RequestError as e:
+        except httpx2.RequestError as e:
             log.warning(f"Failed to retrieve last synced block: {e}")
             return None
         except Exception as e:

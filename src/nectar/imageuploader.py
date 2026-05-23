@@ -2,8 +2,8 @@ import io
 from binascii import hexlify
 from typing import Any, Dict, Optional, Union
 
-import httpx
-from httpx import ConnectError, HTTPStatusError, RequestError, TimeoutException
+import httpx2
+from httpx2 import ConnectError, HTTPStatusError, RequestError, TimeoutException
 
 from nectar.account import Account
 from nectar.exceptions import MissingKeyError
@@ -94,7 +94,7 @@ class ImageUploader:
         retries = 3
         timeout = 60
 
-        with httpx.Client(timeout=timeout) as client:
+        with httpx2.Client(timeout=timeout) as client:
             for i in range(retries + 1):
                 try:
                     r = client.post(url, files=files)

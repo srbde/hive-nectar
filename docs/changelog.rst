@@ -16,6 +16,11 @@ Major Changes
   writing to the local data directory or creating the database file
   fails (e.g., in unprivileged Docker containers or read-only
   filesystems).
+- **HTTPX2**: With HTTPX itself seeing limited activity recently,
+  Pydantic is picking up stewardship under the HTTPX2 name so that users
+  have a reliably maintained path forward - including timely security
+  updates for a library that sits in the critical path of so many
+  production systems.
 
 Maintenance
 ~~~~~~~~~~~

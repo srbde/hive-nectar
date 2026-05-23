@@ -3,7 +3,7 @@ import random
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-import httpx
+import httpx2
 
 from nectar.instance import shared_blockchain_instance
 from nectarbase import operations
@@ -320,7 +320,7 @@ class Market(dict):
 
         :param datetime start: Start date
         :param datetime stop: Stop date
-        :param int limit: Defines how many trades are fetched at each intervall point
+        :param int limit: Defines how many trades are fetched at each interval point
         :param bool raw_data: when True, the raw data are returned
         """
         if not stop:
@@ -723,7 +723,7 @@ class Market(dict):
         while len(prices) == 0 and cnt < 5:
             cnt += 1
             try:
-                responses = list(httpx.get(u, timeout=30) for u in urls)
+                responses = list(httpx2.get(u, timeout=30) for u in urls)
             except Exception as e:
                 log.debug(str(e))
 
@@ -810,7 +810,7 @@ class Market(dict):
         while len(prices) == 0 and cnt < 5:
             cnt += 1
             try:
-                responses = list(httpx.get(u, headers=headers, timeout=30) for u in urls)
+                responses = list(httpx2.get(u, headers=headers, timeout=30) for u in urls)
             except Exception as e:
                 log.debug(str(e))
 

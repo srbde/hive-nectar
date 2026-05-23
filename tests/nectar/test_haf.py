@@ -1,6 +1,6 @@
 import json
 
-import httpx
+import httpx2
 import pytest
 
 from nectar.haf import HAF
@@ -40,8 +40,8 @@ def patch_requests(monkeypatch):
         calls["history"].append((method, url))
         return resp
 
-    # Patch httpx.Client.request instead of requests.request
-    monkeypatch.setattr("httpx.Client.request", _request)
+    # Patch httpx2.Client.request instead of requests.request
+    monkeypatch.setattr("httpx2.Client.request", _request)
     return calls
 
 
@@ -73,7 +73,7 @@ def test_reputation_success(monkeypatch):
     def responder(self, method, url, headers=None, **kwargs):
         return FakeResponse(payload={"account": "alice", "reputation": 70})
 
-    monkeypatch.setattr("httpx.Client.request", responder)
+    monkeypatch.setattr("httpx2.Client.request", responder)
 
     haf = HAF()
     data = haf.reputation("alice")
@@ -120,7 +120,7 @@ def test_haf_methods_success(monkeypatch, method_name, endpoint_suffix, sample_p
         assert url.endswith("/" + endpoint_suffix)
         return FakeResponse(payload=sample_payload)
 
-    monkeypatch.setattr("httpx.Client.request", _request)
+    monkeypatch.setattr("httpx2.Client.request", _request)
 
     haf = HAF()
     method = getattr(haf, method_name)
@@ -147,9 +147,9 @@ def test_haf_methods_success(monkeypatch, method_name, endpoint_suffix, sample_p
 )
 def test_haf_methods_request_exception_returns_none(monkeypatch, method_name, needs_account):
     def _request(self, method, url, headers=None, **kwargs):
-        raise httpx.RequestError("network down", request=None)
+        raise httpx2.RequestError("network down", request=None)
 
-    monkeypatch.setattr("httpx.Client.request", _request)
+    monkeypatch.setattr("httpx2.Client.request", _request)
 
     haf = HAF()
     method = getattr(haf, method_name)
@@ -175,7 +175,7 @@ def test_haf_methods_invalid_json_returns_none(monkeypatch, method_name, needs_a
         # Valid HTTP, but broken JSON
         return FakeResponse(payload=None, bad_json=True)
 
-    monkeypatch.setattr("httpx.Client.request", _request)
+    monkeypatch.setattr("httpx2.Client.request", _request)
 
     haf = HAF()
     method = getattr(haf, method_name)
