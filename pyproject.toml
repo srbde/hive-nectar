@@ -37,6 +37,15 @@ dependencies = [
   "prettytable",
   "ruamel-yaml",
 ]
+[tool.uv.build-backend]
+module-name = [
+  "nectar",
+  "nectarapi",
+  "nectarbase",
+  "nectargraphenebase",
+  "nectarstorage",
+]
+namespace = true
 
 [project.urls]
 "Bug Tracker" = "https://github.com/srbde/hive-nectar/issues"
