@@ -10,8 +10,8 @@ If you are using `beem`, Nectar is where you go next.
 
 [![PyPI version](https://img.shields.io/pypi/v/hive-nectar.svg)](https://pypi.python.org/pypi/hive-nectar/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/hive-nectar.svg)](https://pypi.python.org/pypi/hive-nectar/)
-[![License](https://img.shields.io/github/license/thecrazygm/hive-nectar.svg)](LICENSE.txt)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/TheCrazyGM/hive-nectar)
+[![License](https://img.shields.io/github/license/srbde/hive-nectar.svg)](LICENSE.txt)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/srbde/hive-nectar)
 
 ---
 

@@ -8,49 +8,40 @@ Repository
 
 The repository of nectar is currently located at:
 
-    https://github.com/thecrazygm/hive-nectar
+    https://github.com/srbde/hive-nectar
 
-Flow
-----
+Development Workflow
+--------------------
 
-This project makes heavy use of `git flow <http://nvie.com/posts/a-successful-git-branching-model/>`_.
-If you are not familiar with it, then the most important thing for your
-to understand is that:
+We use modern Python tooling to maintain code quality:
 
-    pull requests need to be made against the develop branch
+*   **uv**: Package and environment management.
+*   **ruff**: Fast Python linting and formatting.
+*   **ty**: Type checking.
+*   **pytest**: Testing framework.
 
 How to Contribute
 -----------------
 
-0. Familiarize yourself with `contributing on github <https://guides.github.com/activities/contributing-to-open-source/>`_
-1. Fork or branch from the master.
-2. Create commits following the commit style
-3. Start a pull request to the master branch
-4. Wait for a @holger80 or another member to review
+1. **Fork** the repo on GitHub.
+2. **Clone** the project to your own machine.
+3. **Install** development dependencies: `uv sync --dev`.
+4. **Create a branch** for your changes.
+5. **Implement** your changes and add tests.
+6. **Verify** your changes:
+    *   Run tests: `uv run pytest`
+    *   Check linting: `uv tool run ruff check`
+    *   Check types: `uv tool run ty check`
+7. **Push** your work to your fork.
+8. Submit a **Pull request** to the `main` branch.
 
 Issues
 ------
 
-Feel free to submit issues and enhancement requests.
-
-Contributing
-------------
-
-Please refer to each project's style guidelines and guidelines for
-submitting patches and additions. In general, we follow the
-"fork-and-pull" Git workflow.
-
-1. **Fork** the repo on GitHub
-2. **Clone** the project to your own machine
-3. **Commit** changes to your own branch
-4. **Push** your work back up to your fork
-5. Submit a **Pull request** so that we can review your changes
-
-.. note:: Be sure to merge the latest from "upstream" before making a pull
-    request!
+Feel free to submit issues and enhancement requests on our `GitHub Issues <https://github.com/srbde/hive-nectar/issues>`_ page.
 
 Copyright and Licensing
 -----------------------
 
-This library is open sources under the MIT license. We require your to
+This library is open source under the MIT license. We require you to
 release your code under that license as well.

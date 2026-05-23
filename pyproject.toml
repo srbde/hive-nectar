@@ -1,16 +1,16 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatchling" ]
+requires = ["hatchling"]
 
 [project]
 name = "hive-nectar"
 version = "1.0.0"
 description = "Hive Blockchain Python Library"
 readme = "README.md"
-keywords = [ "api", "hive", "library", "rpc" ]
+keywords = ["api", "hive", "library", "rpc"]
 license = { file = "LICENSE.txt" }
-maintainers = [ { name = "Michael Garcia", email = "thecrazygm@gmail.com" } ]
-authors = [ { name = "Michael Garcia", email = "thecrazygm@gmail.com" } ]
+maintainers = [{ name = "Michael Garcia", email = "thecrazygm@gmail.com" }]
+authors = [{ name = "Michael Garcia", email = "thecrazygm@gmail.com" }]
 requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -39,9 +39,9 @@ dependencies = [
   "ruamel-yaml",
   "types-requests",
 ]
-urls."Bug Tracker" = "https://github.com/thecrazygm/hive-nectar/issues"
-urls."Download" = "https://github.com/thecrazygm/hive-nectar/tarball/0.1.0b"
-urls."Homepage" = "http://www.github.com/thecrazygm/hive-nectar"
+urls."Bug Tracker" = "https://github.com/srbde/hive-nectar/issues"
+urls."Download" = "https://github.com/srbde/hive-nectar/tarball/0.1.0b"
+urls."Homepage" = "http://www.github.com/srbde/hive-nectar"
 scripts.hive-nectar = "nectar.cli:cli"
 
 [dependency-groups]
@@ -89,8 +89,8 @@ target-version = "py310"
 line-length = 100
 format.indent-style = "space"
 format.quote-style = "double"
-lint.select = [ "E", "F", "I", "W" ]
-lint.ignore = [ "E501" ]
+lint.select = ["E", "F", "I", "W"]
+lint.ignore = ["E501"]
 lint.exclude = [
   "*.egg-info",
   "*.pyc",
@@ -104,12 +104,12 @@ lint.exclude = [
   "docs/source/conf.py",
   "tests/fixtures/*",
 ]
-lint.per-file-ignores."**/{tests,docs,tools}/*" = [ "E402" ]
-lint.per-file-ignores."__init__.py" = [ "E402" ]
+lint.per-file-ignores."**/{tests,docs,tools}/*" = ["E402"]
+lint.per-file-ignores."__init__.py" = ["E402"]
 
 [tool.pytest]
-testpaths = [ "tests" ]
-python_files = [ "test_*.py" ]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
 norecursedirs = [
   ".git",
   ".*",
@@ -120,7 +120,7 @@ norecursedirs = [
   "build",
   "examples",
 ]
-addopts = [ "-rw", "--doctest-modules" ]
+addopts = ["-rw", "--doctest-modules"]
 
 [tool.mypy]
 python_version = "3.10"
