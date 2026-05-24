@@ -11,6 +11,7 @@
 ### Maintenance
 
 - **Docs**: Regenerate the Sphinx API reference from the `src/` layout so the documentation sidebar lists package modules instead of `src`.
+- **Tests**: Isolate pytest-xdist worker homes so wallet/config SQLite databases do not collide during parallel storage, password, key, and CLI tests.
 
 ## 0.2.15 - 2026-04-05
 
