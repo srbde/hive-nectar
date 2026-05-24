@@ -157,10 +157,14 @@ We apply the logic of agricultural sustainability to software: the goal is alway
 
 ### Explore the Ecosystem
 
-| Project                                  | Description                |
-| ---------------------------------------- | -------------------------- |
-| [ecoinstats.net](https://ecoinstats.net) | SRBDE corporate hub        |
-| [thecrazygm.com](https://thecrazygm.com) | Open gaming tools & TTRPGs |
+| Project                                               | Description                       |
+| ----------------------------------------------------- | --------------------------------- |
+| [Pollen](https://github.com/srbde/pollen)             | The modern Hive TypeScript SDK    |
+| [Anther](https://github.com/thecrazygm/anther)        | The modern Hive Go SDK            |
+| [Hive-Nectar](https://github.com/srbde/hive-nectar)   | The modern Hive Python SDK        |
+| [nectarengine](https://github.com/srbde/nectarengine) | The Hive-Engine sidechain library |
+| [ecoinstats.net](https://ecoinstats.net)              | SRBDE corporate hub               |
+| [thecrazygm.com](https://thecrazygm.com)              | Open gaming tools & TTRPGs        |
 
 ---
 
