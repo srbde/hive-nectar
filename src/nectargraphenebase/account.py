@@ -243,7 +243,7 @@ class PasswordKey(Prefix):
         self.password = password
 
     def normalize(self, seed: str) -> str:
-        """Correct formating with single whitespace syntax and no trailing space"""
+        """Correct formatting with single whitespace syntax and no trailing space"""
         return " ".join(re.compile("[\t\n\v\f\r ]+").split(seed))
 
     def get_private(self) -> "PrivateKey":
@@ -310,7 +310,7 @@ class BrainKey(Prefix):
         return self
 
     def normalize(self, brainkey: str) -> str:
-        """Correct formating with single whitespace syntax and no trailing space"""
+        """Correct formatting with single whitespace syntax and no trailing space"""
         return " ".join(re.compile("[\t\n\v\f\r ]+").split(brainkey))
 
     def get_brainkey(self) -> str:
@@ -451,7 +451,7 @@ class Mnemonic:
 
     def check(self, mnemonic: Union[str, List[str]]) -> bool:
         """Checks the mnemonic word list is valid
-        :param list mnemonic: mnemonic word list with lenght of 12, 15, 18, 21, 24
+        :param list mnemonic: mnemonic word list with length of 12, 15, 18, 21, 24
         :returns: True, when valid
         """
         mnemonic_str = " ".join(mnemonic) if isinstance(mnemonic, list) else mnemonic
@@ -871,10 +871,6 @@ class PublicKey(Prefix):
         y = self._derive_y_from_x(x, (prefix == "02"))
         key = "04" + "%064x" % x + "%064x" % y
         return key
-
-    def point(self) -> Any:
-        """Return the point for the public key"""
-        raise NotImplementedError("Pure Python point object is no longer supported.")
 
     def child(self, offset256: bytes) -> "PublicKey":
         """Derive new public key from this key and a sha256 "offset" """
