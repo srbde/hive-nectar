@@ -6,7 +6,7 @@ from datetime import date, datetime, timezone
 
 from prettytable import PrettyTable
 
-from nectarapi.exceptions import InvalidParameters, UnknownKey
+from nectarapi.exceptions import InvalidParameters, RPCError, UnknownKey
 
 from .account import Account
 from .amount import Amount
@@ -144,15 +144,18 @@ class Vote(BlockchainObject):
                     permlink,
                 )
                 votes = response["votes"] if isinstance(response, dict) else response
-            except InvalidParameters:
+            except (InvalidParameters, RPCError):
                 raise VoteDoesNotExistsException(self.identifier)
             except Exception:
-                votes = self.blockchain.rpc.get_active_votes(
-                    author,
-                    permlink,
-                )
-                if isinstance(votes, dict) and "votes" in votes:
-                    votes = votes["votes"]
+                try:
+                    votes = self.blockchain.rpc.get_active_votes(
+                        author,
+                        permlink,
+                    )
+                    if isinstance(votes, dict) and "votes" in votes:
+                        votes = votes["votes"]
+                except (InvalidParameters, RPCError):
+                    raise VoteDoesNotExistsException(self.identifier)
         except UnknownKey:
             raise VoteDoesNotExistsException(self.identifier)
 

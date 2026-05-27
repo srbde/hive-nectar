@@ -5,8 +5,8 @@ from binascii import hexlify, unhexlify
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Union
 
-import ecdsa
 from asn1crypto.core import OctetString
+from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 
 from .bip32 import parse_path
 from .chains import known_chains
@@ -160,16 +160,14 @@ class Unsigned_Transaction(GrapheneObjectASN1):
     def getOperationKlass(self) -> type[Operation]:
         return Operation
 
-    def derSigToHexSig(self, s: bytes) -> str:
+    def derSigToHexSig(self, s: Union[str, bytes]) -> str:
         """Format DER to HEX signature"""
-        s, junk = ecdsa.der.remove_sequence(unhexlify(s))
-        if junk:
-            log.debug("JUNK: %s", hexlify(junk).decode("ascii"))
-        if not (junk == b""):
-            raise AssertionError()
-        x, s = ecdsa.der.remove_integer(s)
-        y, s = ecdsa.der.remove_integer(s)
-        return "{:064x}{:064x}".format(x, y)
+        if isinstance(s, bytes):
+            der_bytes = s
+        else:
+            der_bytes = unhexlify(s)
+        r, s_val = decode_dss_signature(der_bytes)
+        return "{:064x}{:064x}".format(r, s_val)
 
     def getKnownChains(self) -> Dict[str, Any]:
         return known_chains

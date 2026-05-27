@@ -53,11 +53,11 @@ class MasterPassword:
         if self.password is not None:
             return bool(self.password)
         else:
-            password_storage = self.config["password_storage"]
+            password_storage = self.config.get("password_storage", "environment")
             KEYRING_AVAILABLE = False
             if password_storage == "keyring":
                 try:
-                    import keyring  # type: ignore[import-not-found]
+                    import keyring  # type: ignore[import-not-found]  # ty: ignore[unresolved-import]
 
                     if not isinstance(keyring.get_keyring(), keyring.backends.fail.Keyring):
                         KEYRING_AVAILABLE = True

@@ -1,22 +1,21 @@
 [build-system]
-build-backend = "hatchling.build"
-requires = [ "hatchling" ]
+requires = ["uv_build>=0.11.16,<0.12"]
+build-backend = "uv_build"
 
 [project]
 name = "hive-nectar"
-version = "0.2.16"
+version = "1.0.0"
 description = "Hive Blockchain Python Library"
 readme = "README.md"
-keywords = [ "api", "hive", "library", "rpc" ]
-license = { file = "LICENSE.txt" }
-maintainers = [ { name = "Michael Garcia", email = "thecrazygm@gmail.com" } ]
-authors = [ { name = "Michael Garcia", email = "thecrazygm@gmail.com" } ]
+keywords = ["api", "hive", "library", "rpc"]
+license = "MIT"
+maintainers = [{ name = "Michael Garcia", email = "thecrazygm@gmail.com" }]
+authors = [{ name = "Michael Garcia", email = "thecrazygm@gmail.com" }]
 requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Intended Audience :: Financial and Insurance Industry",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
@@ -31,88 +30,75 @@ dependencies = [
   "appdirs",
   "asn1crypto",
   "click",
+  "coincurve>=20.0.0",
   "cryptography",
   "diff-match-patch",
-  "ecdsa",
-  "httpx>=0.28.1",
+  "httpx2>=2.2.0",
   "prettytable",
-  "pycryptodomex",
-  "requests>=2.32.4",
   "ruamel-yaml",
-  "scrypt",
-  "types-requests",
 ]
-urls."Bug Tracker" = "https://github.com/thecrazygm/hive-nectar/issues"
-urls."Download" = "https://github.com/thecrazygm/hive-nectar/tarball/0.1.0b"
-urls."Homepage" = "http://www.github.com/thecrazygm/hive-nectar"
-scripts.hive-nectar = "nectar.cli:cli"
+
+[tool.uv.build-backend]
+module-name = [
+  "nectar",
+  "nectarapi",
+  "nectarbase",
+  "nectargraphenebase",
+  "nectarstorage",
+]
+
+[project.urls]
+"Bug Tracker" = "https://github.com/srbde/hive-nectar/issues"
+Download = "https://github.com/srbde/hive-nectar"
+Homepage = "https://github.com/srbde/hive-nectar"
+
+[project.scripts]
+hive-nectar = "nectar.cli:cli"
 
 [dependency-groups]
 dev = [
   "build",
-  "codacy-coverage",
-  "codecov",
   "coverage",
-  "doc8",
-  "mock",
   "parameterized",
   "pytest",
-  "pytest-cov",
   "pytest-mock",
-  "readme-renderer",
   "ruff",
   "sphinx",
   "sphinx-click",
   "sphinx-rtd-theme",
   "tomli",
-  "tox",
-]
-
-[tool.hatch]
-build.targets.wheel.packages = [
-  "src/nectar",
-  "src/nectarapi",
-  "src/nectarbase",
-  "src/nectargraphenebase",
-  "src/nectargrapheneapi",
-  "src/nectarstorage",
 ]
 
 [tool.uv]
-default-groups = []
+publish-url = "https://test.pypi.org/legacy/"
 
 [[tool.uv.index]]
 name = "testpypi"
 url = "https://test.pypi.org/simple/"
-publish-url = "https://test.pypi.org/legacy/"
 explicit = true
+
+[tool.uv.sources]
+coincurve = { git = "https://github.com/ofek/coincurve", rev = "7829b29c08ebb1cc80386a1cdaf8c2243c4ef5c5" }
 
 [tool.ruff]
 target-version = "py310"
 line-length = 100
-format.indent-style = "space"
-format.quote-style = "double"
-lint.select = [ "E", "F", "I", "W" ]
-lint.ignore = [ "E501" ]
-lint.exclude = [
-  "*.egg-info",
-  "*.pyc",
-  ".cache",
-  ".eggs",
-  ".git",
-  ".tox",
-  "__pycache__",
-  "build",
-  "dist",
-  "docs/source/conf.py",
-  "tests/fixtures/*",
-]
-lint.per-file-ignores."**/{tests,docs,tools}/*" = [ "E402" ]
-lint.per-file-ignores."__init__.py" = [ "E402" ]
 
-[tool.pytest]
-testpaths = [ "tests" ]
-python_files = [ "test_*.py" ]
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "double"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/{tests,docs,tools}/*" = ["E402"]
+"__init__.py" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
 norecursedirs = [
   ".git",
   ".*",
@@ -123,11 +109,7 @@ norecursedirs = [
   "build",
   "examples",
 ]
-addopts = [ "-rw", "--doctest-modules" ]
-
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
+addopts = ["-rw", "--doctest-modules"]
+markers = [
+  "network: tests that require network access to live blockchain nodes",
+]

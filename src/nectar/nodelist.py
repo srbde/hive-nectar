@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import httpx
+import httpx2
 
 log = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
     for beacon_url in BEACON_URLS:
         try:
             log.debug(f"Fetching fresh nodes from beacon API: {beacon_url}")
-            response = httpx.get(
+            response = httpx2.get(
                 beacon_url,
                 headers={"Accept": "*/*"},
                 timeout=REQUEST_TIMEOUT,
@@ -117,7 +117,7 @@ def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
                     log.warning(f"Failed to write to disk cache: {e}")
                 return nodes
             # else: try next beacon URL
-        except (httpx.RequestError, httpx.HTTPStatusError, json.JSONDecodeError, ValueError) as e:
+        except (httpx2.RequestError, httpx2.HTTPStatusError, json.JSONDecodeError, ValueError) as e:
             log.warning(f"Failed to fetch nodes from beacon API {beacon_url}: {e}")
 
         except Exception as e:

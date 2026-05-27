@@ -1,11 +1,37 @@
 Changelog
 =========
 
-Unreleased
-----------
+1.0.0 - 2026-05-22
+------------------
+
+Major Changes
+~~~~~~~~~~~~~
+
+- **Cryptography layer modernization**: Removed all legacy cryptography
+  library dependencies (``ecdsa``, ``pycryptodomex``, ``scrypt``) and
+  replaced them with standard ``cryptography`` and ``coincurve==20.0.0``
+  for key derivation, signing, and encryption.
+- **Docker/Kubernetes Support**: Implemented a transparent fallback to
+  in-memory (RAM) SQLite database storage (using a shared cache URI) if
+  writing to the local data directory or creating the database file
+  fails (e.g., in unprivileged Docker containers or read-only
+  filesystems).
+- **HTTPX2**: With HTTPX itself seeing limited activity recently,
+  Pydantic is picking up stewardship under the HTTPX2 name so that users
+  have a reliably maintained path forward - including timely security
+  updates for a library that sits in the critical path of so many
+  production systems.
+
+Maintenance
+~~~~~~~~~~~
 
 - **Docs**: Regenerate the Sphinx API reference from the ``src/`` layout
   so the documentation sidebar lists package modules instead of ``src``.
+- **Tests**: Isolate pytest-xdist worker homes so wallet/config SQLite
+  databases do not collide during parallel storage, password, key, and
+  CLI tests.
+
+.. _section-1:
 
 0.2.15 - 2026-04-05
 -------------------
@@ -13,7 +39,7 @@ Unreleased
 - **Logging**: stop repeated log spam when retrying a failed network
   connection
 
-.. _section-1:
+.. _section-2:
 
 0.2.14 - 2026-01-21
 -------------------
@@ -21,7 +47,7 @@ Unreleased
 - **Feature**: Updated node fetching to use both PeakD beacon and the
   new v4v beacon API.
 
-.. _section-2:
+.. _section-3:
 
 0.2.13 - 2025-12-24
 -------------------
@@ -29,7 +55,7 @@ Unreleased
 - **Fix**: Serialize node configuration lists to JSON strings to fix
   ``sqlite3`` errors in Docker/fresh installs.
 
-.. _section-3:
+.. _section-4:
 
 0.2.12 - 2025-12-23
 -------------------
@@ -37,7 +63,7 @@ Unreleased
 - **Feature**: Allow specifying a node list or offline mode in
   ``generate_config_store``.
 
-.. _section-4:
+.. _section-5:
 
 0.2.11 - 2025-12-23
 -------------------
@@ -47,7 +73,7 @@ Unreleased
 - **Feature**: Added separate MD5-based file caching for NectarEngine
   node lists (standard & history).
 
-.. _section-5:
+.. _section-6:
 
 0.2.10 - 2025-12-23
 -------------------
@@ -55,7 +81,7 @@ Unreleased
 - **Refactor**: Only fetch default nodes if “node” key is missing in
   configuration.
 
-.. _section-6:
+.. _section-7:
 
 0.2.9 - 2025-12-22
 ------------------
@@ -70,7 +96,7 @@ Unreleased
 - **Maintenance**: Various fixes and stability improvements during rapid
   iteration.
 
-.. _section-7:
+.. _section-8:
 
 0.2.2 - 2025-12-16
 ------------------
@@ -84,7 +110,7 @@ Improvements
 - **Logging**: Reduced log verbosity by setting ``httpx`` and
   ``httpcore`` loggers to ``WARNING`` level.
 
-.. _section-8:
+.. _section-9:
 
 0.2.0 - 2025-12-01
 ------------------
@@ -142,7 +168,7 @@ Fixes
 - **Reliability**: Improved RPC retry logic and error handling for
   witness and node operations.
 
-.. _section-9:
+.. _section-10:
 
 0.1.5 - 2025-11-04
 ------------------
@@ -202,7 +228,7 @@ Fixes
   how to compute both the downvote-to-zero percent and the upvote
   percent to reach a target HBD.
 
-.. _section-10:
+.. _section-11:
 
 0.1.3 - 2025-09-18
 ------------------
@@ -210,14 +236,14 @@ Fixes
 - **Test**: Working on getting 100% test coverage
 - **Feature**: Added some HAF features for things like reputation.
 
-.. _section-11:
+.. _section-12:
 
 0.1.2 - 2025-09-17
 ------------------
 
 - **Fix**: Replaced missing ``**kwargs`` in ``Blocks`` constructor.
 
-.. _section-12:
+.. _section-13:
 
 0.1.1 - 2025-09-17
 ------------------
@@ -298,7 +324,7 @@ Fixes
 - **Feature**: Add a pure-Python fallback for public key derivation when
   the ``ecdsa`` library is unavailable, improving portability.
 
-.. _section-13:
+.. _section-14:
 
 0.0.11 - 2025-07-25
 -------------------
@@ -307,7 +333,7 @@ Fixes
   (``Comment``) and improved ``weighted_score`` type check in node list
   ranking (``NodeList``).
 
-.. _section-14:
+.. _section-15:
 
 0.0.10 - 2025-07-12
 -------------------
@@ -316,7 +342,7 @@ Fixes
   generation (in ``derive_permlink``) to resolve validation errors
   caused by the uppercase ``U``.
 
-.. _section-15:
+.. _section-16:
 
 0.0.9 - 2025-07-12
 ------------------
@@ -331,14 +357,14 @@ Fixes
     ensuring completeness.
   - Removed unused fall-back paths and cleaned up internal code.
 
-.. _section-16:
+.. _section-17:
 
 0.0.8
 -----
 
 Added new documentation and type hints to community
 
-.. _section-17:
+.. _section-18:
 
 0.0.7
 -----
@@ -346,42 +372,42 @@ Added new documentation and type hints to community
 Removed all python2 legacy dependencies, drop python3 version
 requirement to >=3.10
 
-.. _section-18:
+.. _section-19:
 
 0.0.6
 -----
 
 Updated to more robust error reporting
 
-.. _section-19:
+.. _section-20:
 
 0.0.5
 -----
 
 More community fixes, including the Community Title Property
 
-.. _section-20:
+.. _section-21:
 
 0.0.4
 -----
 
 Small community fixes
 
-.. _section-21:
+.. _section-22:
 
 0.0.3
 -----
 
 Working on bridge api
 
-.. _section-22:
+.. _section-23:
 
 0.0.2
 -----
 
 Rebranded to Nectar
 
-.. _section-23:
+.. _section-24:
 
 0.0.1
 -----

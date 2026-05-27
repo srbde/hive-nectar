@@ -1,8 +1,17 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 - 2026-05-22
+
+### Major Changes
+
+- **Cryptography layer modernization**: Removed all legacy cryptography library dependencies (`ecdsa`, `pycryptodomex`, `scrypt`) and replaced them with standard `cryptography` and `coincurve==20.0.0` for key derivation, signing, and encryption.
+- **Docker/Kubernetes Support**: Implemented a transparent fallback to in-memory (RAM) SQLite database storage (using a shared cache URI) if writing to the local data directory or creating the database file fails (e.g., in unprivileged Docker containers or read-only filesystems).
+- **HTTPX2**: With HTTPX itself seeing limited activity recently, Pydantic is picking up stewardship under the HTTPX2 name so that users have a reliably maintained path forward - including timely security updates for a library that sits in the critical path of so many production systems.
+
+### Maintenance
 
 - **Docs**: Regenerate the Sphinx API reference from the `src/` layout so the documentation sidebar lists package modules instead of `src`.
+- **Tests**: Isolate pytest-xdist worker homes so wallet/config SQLite databases do not collide during parallel storage, password, key, and CLI tests.
 
 ## 0.2.15 - 2026-04-05
 

@@ -47,8 +47,6 @@ dev-setup:
 dist: generate-versions
 	uv build
 	uvx uv-publish@latest --repo pypi
-	# uv publish
-	# python -m twine upload dist/*
 
 tag:
 	@VERSION=$$(grep -m1 '^version[[:space:]]*=' pyproject.toml | cut -d '"' -f2) && \
@@ -58,8 +56,6 @@ tag:
 test-dist: generate-versions
 	uv build
 	uvx uv-publish@latest --repo testpypi
-	# uv publish --index testpypi
-	# python -m twine upload --repository testpypi dist/* --verbose
 
 docs:
 	uv run sphinx-apidoc -H "API Reference" -d 4 -e -f -o docs src

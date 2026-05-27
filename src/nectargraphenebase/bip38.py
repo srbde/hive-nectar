@@ -1,11 +1,10 @@
 import hashlib
 import logging
-import sys
 from binascii import hexlify, unhexlify
 from typing import Any
 
-import scrypt
-from Cryptodome.Cipher import AES
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
 from .account import PrivateKey
 from .base58 import Base58, base58decode
@@ -17,10 +16,22 @@ class SaltException(Exception):
     pass
 
 
-def _encrypt_xor(a: Any, b: bytes, aes: Any) -> bytes:
+def _aes_ecb_encrypt(key: bytes, data: bytes) -> bytes:
+    cipher = Cipher(algorithms.AES(key), modes.ECB())
+    encryptor = cipher.encryptor()
+    return encryptor.update(data) + encryptor.finalize()
+
+
+def _aes_ecb_decrypt(key: bytes, data: bytes) -> bytes:
+    cipher = Cipher(algorithms.AES(key), modes.ECB())
+    decryptor = cipher.decryptor()
+    return decryptor.update(data) + decryptor.finalize()
+
+
+def _encrypt_xor(a: Any, b: bytes, key: bytes) -> bytes:
     """Returns encrypt(a ^ b)."""
-    a = unhexlify("%0.32x" % (int((a), 16) ^ int(hexlify(b), 16)))
-    return aes.encrypt(a)
+    a_bytes = unhexlify("%0.32x" % (int(a, 16) ^ int(hexlify(b), 16)))
+    return _aes_ecb_encrypt(key, a_bytes)
 
 
 def encrypt(privkey: Any, passphrase: str) -> Base58:
@@ -42,22 +53,23 @@ def encrypt(privkey: Any, passphrase: str) -> Base58:
     addr = format(privkey.bitcoin.address, "BTC")
     a = bytes(addr, "ascii")
     salt = hashlib.sha256(hashlib.sha256(a).digest()).digest()[0:4]
-    if sys.version < "3":
-        if isinstance(passphrase, str):
-            passphrase_bytes = passphrase.encode("utf-8")
-        else:
-            passphrase_bytes = passphrase
-    else:
-        passphrase_bytes = passphrase.encode("utf-8") if isinstance(passphrase, str) else passphrase
+    passphrase_bytes = passphrase.encode("utf-8") if isinstance(passphrase, str) else passphrase
 
-    key = scrypt.hash(passphrase_bytes, salt, 16384, 8, 8)
+    kdf = Scrypt(
+        salt=salt,
+        length=64,
+        n=16384,
+        r=8,
+        p=8,
+    )
+    key = kdf.derive(passphrase_bytes)
     (derived_half1, derived_half2) = (key[:32], key[32:])
-    aes = AES.new(derived_half2, AES.MODE_ECB)
-    encrypted_half1 = _encrypt_xor(privkeyhex[:32], derived_half1[:16], aes)
-    encrypted_half2 = _encrypt_xor(privkeyhex[32:], derived_half1[16:], aes)
-    " flag byte is forced 0xc0 because Graphene only uses compressed keys "
+
+    encrypted_half1 = _encrypt_xor(privkeyhex[:32], derived_half1[:16], derived_half2)
+    encrypted_half2 = _encrypt_xor(privkeyhex[32:], derived_half1[16:], derived_half2)
+    # flag byte is forced 0xc0 because Graphene only uses compressed keys
     payload = b"\x01" + b"\x42" + b"\xc0" + salt + encrypted_half1 + encrypted_half2
-    " Checksum "
+    # Checksum
     checksum = hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4]
     privatkey = hexlify(payload + checksum).decode("ascii")
     return Base58(privatkey)
@@ -82,25 +94,27 @@ def decrypt(encrypted_privkey: Any, passphrase: str) -> Base58:
         raise AssertionError("Flagbyte has to be 0xc0")
     salt = d[0:4]
     d = d[4:-4]
-    if sys.version < "3":
-        if isinstance(passphrase, str):
-            passphrase_bytes = passphrase.encode("utf-8")
-        else:
-            passphrase_bytes = passphrase
-    else:
-        passphrase_bytes = passphrase.encode("utf-8") if isinstance(passphrase, str) else passphrase
-    key = scrypt.hash(passphrase_bytes, salt, 16384, 8, 8)
+    passphrase_bytes = passphrase.encode("utf-8") if isinstance(passphrase, str) else passphrase
+
+    kdf = Scrypt(
+        salt=salt,
+        length=64,
+        n=16384,
+        r=8,
+        p=8,
+    )
+    key = kdf.derive(passphrase_bytes)
     derivedhalf1 = key[0:32]
     derivedhalf2 = key[32:64]
     encryptedhalf1 = d[0:16]
     encryptedhalf2 = d[16:32]
-    aes = AES.new(derivedhalf2, AES.MODE_ECB)
-    decryptedhalf2 = aes.decrypt(encryptedhalf2)
-    decryptedhalf1 = aes.decrypt(encryptedhalf1)
+
+    decryptedhalf2 = _aes_ecb_decrypt(derivedhalf2, encryptedhalf2)
+    decryptedhalf1 = _aes_ecb_decrypt(derivedhalf2, encryptedhalf1)
     privraw = decryptedhalf1 + decryptedhalf2
     privraw = "%064x" % (int(hexlify(privraw), 16) ^ int(hexlify(derivedhalf1), 16))
     wif = Base58(privraw)
-    """ Verify Salt """
+    # Verify Salt
     privkey = PrivateKey(format(wif, "wif"))
     addr = format(privkey.bitcoin.address, "BTC")
     a = bytes(addr, "ascii")

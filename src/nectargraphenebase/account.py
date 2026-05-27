@@ -8,9 +8,7 @@ import unicodedata
 from binascii import hexlify, unhexlify
 from typing import Any, List, Optional, Tuple, Union
 
-import ecdsa
-from ecdsa.numbertheory import square_root_mod_prime
-from ecdsa.util import number_to_string
+import coincurve
 
 from .base58 import Base58, doublesha256, ripemd160
 from .bip32 import BIP32Key, parse_path
@@ -245,7 +243,7 @@ class PasswordKey(Prefix):
         self.password = password
 
     def normalize(self, seed: str) -> str:
-        """Correct formating with single whitespace syntax and no trailing space"""
+        """Correct formatting with single whitespace syntax and no trailing space"""
         return " ".join(re.compile("[\t\n\v\f\r ]+").split(seed))
 
     def get_private(self) -> "PrivateKey":
@@ -312,7 +310,7 @@ class BrainKey(Prefix):
         return self
 
     def normalize(self, brainkey: str) -> str:
-        """Correct formating with single whitespace syntax and no trailing space"""
+        """Correct formatting with single whitespace syntax and no trailing space"""
         return " ".join(re.compile("[\t\n\v\f\r ]+").split(brainkey))
 
     def get_brainkey(self) -> str:
@@ -453,7 +451,7 @@ class Mnemonic:
 
     def check(self, mnemonic: Union[str, List[str]]) -> bool:
         """Checks the mnemonic word list is valid
-        :param list mnemonic: mnemonic word list with lenght of 12, 15, 18, 21, 24
+        :param list mnemonic: mnemonic word list with length of 12, 15, 18, 21, 24
         :returns: True, when valid
         """
         mnemonic_str = " ".join(mnemonic) if isinstance(mnemonic, list) else mnemonic
@@ -510,12 +508,17 @@ class Mnemonic:
         :param str passphrase: optional, passphrase can be set to modify the returned seed.
 
         """
-        mnemonic = cls.normalize_string(mnemonic)
-        passphrase = cls.normalize_string(passphrase)
-        passphrase = "mnemonic" + passphrase
-        mnemonic = mnemonic.encode("utf-8")
-        passphrase = passphrase.encode("utf-8")
-        stretched = hashlib.pbkdf2_hmac("sha512", mnemonic, passphrase, PBKDF2_ROUNDS)
+        if isinstance(mnemonic, list):
+            mnemonic = " ".join(mnemonic)
+        norm_mnemonic = cls.normalize_string(mnemonic)
+        norm_passphrase = cls.normalize_string(passphrase)
+        salt = "mnemonic" + norm_passphrase
+        stretched = hashlib.pbkdf2_hmac(
+            "sha512",
+            norm_mnemonic.encode("utf-8"),
+            salt.encode("utf-8"),
+            PBKDF2_ROUNDS,
+        )
         return stretched[:64]
 
 
@@ -760,6 +763,7 @@ class GrapheneAddress(Address):
         cls,
         pubkey: Union[str, "PublicKey"],
         compressed: bool = True,
+        version: int = 56,
         prefix: Optional[str] = None,
     ) -> "GrapheneAddress":
         # Ensure this is a public key
@@ -772,7 +776,7 @@ class GrapheneAddress(Address):
         """ Derive address using ``RIPEMD160(SHA512(x))`` """
         addressbin = ripemd160(hashlib.sha512(unhexlify(pubkey_plain)).hexdigest())
         result = Base58(hexlify(addressbin).decode("ascii"))
-        return cls(result, prefix=pubkey.prefix)
+        return cls(repr(result), prefix=pubkey.prefix)
 
 
 class PublicKey(Prefix):
@@ -805,12 +809,10 @@ class PublicKey(Prefix):
         if str(pk).startswith("04"):
             # We only ever deal with compressed keys, so let's make it
             # compressed
-            order = ecdsa.SECP256k1.order
-            p = ecdsa.VerifyingKey.from_string(
-                unhexlify(pk[2:]), curve=ecdsa.SECP256k1
-            ).pubkey.point
-            x_str = number_to_string(int(p.x()), order)
-            pk = hexlify(chr(2 + (int(p.y()) & 1)).encode("ascii") + x_str).decode("ascii")
+            import coincurve
+
+            pk_bytes = coincurve.PublicKey(unhexlify(pk)).format(compressed=True)
+            pk = hexlify(pk_bytes).decode("ascii")
 
         self._pk = Base58(pk, prefix=self.prefix)
 
@@ -844,14 +846,13 @@ class PublicKey(Prefix):
 
     def _derive_y_from_x(self, x: int, is_even: bool) -> int:
         """Derive y point from x point"""
-        curve = ecdsa.SECP256k1.curve
         # The curve equation over F_p is:
         #   y^2 = x^3 + ax + b
-        a, b, p = curve.a(), curve.b(), curve.p()
-        alpha = (pow(x, 3, p) + a * x + b) % p
-        beta = square_root_mod_prime(alpha, p)
+        # For secp256k1, a=0, b=7
+        alpha = (pow(x, 3, SECP256K1_P) + SECP256K1_B) % SECP256K1_P
+        beta = pow(alpha, (SECP256K1_P + 1) // 4, SECP256K1_P)
         if (beta % 2) == is_even:
-            beta = p - beta
+            beta = SECP256K1_P - beta
         return beta
 
     def compressed(self) -> str:
@@ -870,11 +871,6 @@ class PublicKey(Prefix):
         y = self._derive_y_from_x(x, (prefix == "02"))
         key = "04" + "%064x" % x + "%064x" % y
         return key
-
-    def point(self) -> Any:
-        """Return the point for the public key"""
-        string = unhexlify(self.uncompressed())
-        return ecdsa.VerifyingKey.from_string(string[1:], curve=ecdsa.SECP256k1).pubkey.point
 
     def child(self, offset256: bytes) -> "PublicKey":
         """Derive new public key from this key and a sha256 "offset" """
@@ -943,17 +939,12 @@ class PublicKey(Prefix):
 
         Returns:
             PublicKey: A PublicKey (compressed form) constructed from the derived public key bytes.
-
-        Raises:
-            ImportError: If the `ecdsa` library is not available.
         """
         privkey = PrivateKey(privkey, prefix=prefix or Prefix.prefix)
         secret = unhexlify(repr(privkey))
 
-        order = ecdsa.SigningKey.from_string(secret, curve=ecdsa.SECP256k1).curve.generator.order()
-        p = ecdsa.SigningKey.from_string(secret, curve=ecdsa.SECP256k1).verifying_key.pubkey.point
-        x_str = number_to_string(int(p.x()), order)
-        compressed = hexlify(chr(2 + (int(p.y()) & 1)).encode("ascii") + x_str).decode("ascii")
+        cc_priv = coincurve.PrivateKey(secret)
+        compressed = hexlify(cc_priv.public_key.format(compressed=True)).decode("ascii")
         return cls(compressed, prefix=prefix or Prefix.prefix)
 
     def unCompressed(self) -> str:
@@ -1096,16 +1087,18 @@ class BitcoinAddress(Address):
         cls,
         pubkey: Union[str, PublicKey],
         compressed: bool = False,
+        version: int = 56,
+        prefix: Optional[str] = None,
     ) -> "BitcoinAddress":
         # Ensure this is a public key
-        pubkey = PublicKey(pubkey)
+        pubkey_obj = PublicKey(pubkey)
         if compressed:
-            pubkey = pubkey.compressed()
+            pubkey_plain = pubkey_obj.compressed()
         else:
-            pubkey = pubkey.uncompressed()
+            pubkey_plain = pubkey_obj.uncompressed()
 
         """ Derive address using ``RIPEMD160(SHA256(x))`` """
-        addressbin = ripemd160(hexlify(hashlib.sha256(unhexlify(pubkey)).digest()))
+        addressbin = ripemd160(hexlify(hashlib.sha256(unhexlify(pubkey_plain)).digest()))
         return cls(hexlify(addressbin).decode("ascii"))
 
     def __str__(self) -> str:

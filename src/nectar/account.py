@@ -1501,7 +1501,7 @@ class Account(BlockchainObject):
     ):
         """Returns account notifications
 
-        :param bool only_unread: When True, only unread notfications are shown
+        :param bool only_unread: When True, only unread notifications are shown
         :param int limit: When set, the number of shown notifications is limited (max limit = 100)
         :param bool raw_data: When True, the raw data from the api call is returned.
         :param str account: (optional) the account for which the notification should be received
@@ -2988,7 +2988,7 @@ class Account(BlockchainObject):
         raw_output: bool = False,
     ):
         """Returns a generator for individual account transactions. The
-        earlist operation will be first. This call can be used in a
+        earliest operation will be first. This call can be used in a
         ``for`` loop.
 
         :param start: start number/date of transactions to return (*optional*)
@@ -3620,7 +3620,7 @@ class Account(BlockchainObject):
                 'location': 'United States',
                 'profile_image': 'https://.jpg',
                 'cover_image': 'https://.jpg',
-                'website': 'https://github.com/thecrazygm/hive-nectar'
+                'website': 'https://github.com/thecrazygm'
             }
 
         .. code-block:: python
@@ -4647,8 +4647,8 @@ class Account(BlockchainObject):
                     authority["account_auths"] = list(
                         [x for x in authority["account_auths"] if x[0] != foreign_account["name"]]
                     )
-            except Exception:
-                raise ValueError("Unknown foreign account or unvalid public key")
+            except Exception as err:
+                raise ValueError("Unknown foreign account or invalid public key") from err
 
         if not affected_items:
             raise ValueError("Changes nothing!")

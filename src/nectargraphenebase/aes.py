@@ -1,9 +1,9 @@
 import base64
 import hashlib
+import os
 from typing import Any
 
-from Cryptodome import Random
-from Cryptodome.Cipher import AES
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 
 class AESCipher:
@@ -38,12 +38,16 @@ class AESCipher:
 
     def encrypt(self, raw: Any) -> str:
         raw = self._pad(AESCipher.str_to_bytes(raw))
-        iv = Random.new().read(AES.block_size)
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return base64.b64encode(iv + cipher.encrypt(raw)).decode("utf-8")
+        iv = os.urandom(16)
+        cipher = Cipher(algorithms.AES(self.key), modes.CBC(iv))
+        encryptor = cipher.encryptor()
+        encrypted = encryptor.update(raw) + encryptor.finalize()
+        return base64.b64encode(iv + encrypted).decode("utf-8")
 
     def decrypt(self, enc: str) -> str:
         enc_bytes = base64.b64decode(enc)
-        iv = enc_bytes[: AES.block_size]
-        cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return self._unpad(cipher.decrypt(enc_bytes[AES.block_size :])).decode("utf-8")
+        iv = enc_bytes[:16]
+        cipher = Cipher(algorithms.AES(self.key), modes.CBC(iv))
+        decryptor = cipher.decryptor()
+        decrypted = decryptor.update(enc_bytes[16:]) + decryptor.finalize()
+        return self._unpad(decrypted).decode("utf-8")

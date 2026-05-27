@@ -1,6 +1,6 @@
 Installation
 ============
-The minimal working python version is 3.5.x
+The minimal working python version is 3.10
 
 nectar can be installed parallel to python-steem/beem.
 
@@ -8,17 +8,17 @@ For Debian and Ubuntu, please ensure that the following packages are installed:
 
 .. code:: bash
 
-    sudo apt-get install build-essential libssl-dev python-dev curl
+    sudo apt-get install build-essential libssl-dev python3-dev python3-pip libffi-dev libtool autoconf automake pkg-config
 
 For Fedora and RHEL-derivatives, please ensure that the following packages are installed:
 
 .. code:: bash
 
-    sudo yum install gcc openssl-devel python-devel
+    sudo dnf install gcc openssl-devel python3-devel libffi-devel libtool autoconf automake pkgconfig
 
 For OSX, please do the following::
 
-    brew install openssl
+    brew install openssl libtool autoconf automake libffi pkg-config
     export CFLAGS="-I$(brew --prefix openssl)/include $CFLAGS"
     export LDFLAGS="-L$(brew --prefix openssl)/lib $LDFLAGS"
 
@@ -26,50 +26,40 @@ For Termux on Android, please install the following packages:
 
 .. code:: bash
 
-    pkg install clang openssl-dev python-dev
+    pkg install clang openssl python libtool autoconf automake libffi
 
-Install pip (https://pip.pypa.io/en/stable/installing/):
+Install hive-nectar
+-------------------
 
-.. code:: bash
-
-   curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-
-   python get-pip.py
-
-Signing and Verify can be fasten (200 %) by installing cryptography. Install cryptography with pip:
+The recommended way to install and manage dependencies is using `uv <https://docs.astral.sh/uv/>`_:
 
 .. code:: bash
 
-    pip install -U cryptography
+    uv add hive-nectar
 
-Install nectar with pip:
+Alternatively, you can use pip:
 
 .. code:: bash
 
     pip install -U hive-nectar
 
-Sometimes this does not work. Please try::
-
-    pip3 install -U hive-nectar
-
-or::
-
-    python -m pip install hive-nectar
-
 Manual installation
 -------------------
 
-You can install nectar from this repository if you want the latest
-but possibly non-compiling version::
+You can install nectar from this repository if you want the latest development version:
 
-    git clone https://github.com/thecrazygm/hive-nectar.git
+.. code:: bash
+
+    git clone https://github.com/srbde/hive-nectar.git
     cd hive-nectar
     uv sync
     uv sync --dev
 
-Run tests after install::
+Run tests after install:
 
-    pytest
+.. code:: bash
+
+    uv run pytest
 
 Enable Logging
 --------------
