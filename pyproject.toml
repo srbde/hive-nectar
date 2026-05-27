@@ -49,8 +49,8 @@ module-name = [
 
 [project.urls]
 "Bug Tracker" = "https://github.com/srbde/hive-nectar/issues"
-Download = "https://github.com/srbde/hive-nectar/tarball/0.1.0b"
-Homepage = "http://www.github.com/srbde/hive-nectar"
+Download = "https://github.com/srbde/hive-nectar"
+Homepage = "http://github.com/srbde/hive-nectar"
 
 [project.scripts]
 hive-nectar = "nectar.cli:cli"
