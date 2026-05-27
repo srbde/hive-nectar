@@ -50,7 +50,7 @@ module-name = [
 [project.urls]
 "Bug Tracker" = "https://github.com/srbde/hive-nectar/issues"
 Download = "https://github.com/srbde/hive-nectar"
-Homepage = "http://github.com/srbde/hive-nectar"
+Homepage = "https://github.com/srbde/hive-nectar"
 
 [project.scripts]
 hive-nectar = "nectar.cli:cli"
