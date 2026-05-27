@@ -69,12 +69,15 @@ class Testcases(unittest.TestCase):
                 raise sqlite3.OperationalError("unable to open database file")
             return original_connect(database, *args, **kwargs)
 
-        with patch("sqlite3.connect", mock_connect):
-            store = MyStore(data_dir="/tmp/test_nonexistent_writable")
-            # Since standard connect raised an error, it should have fallen back to memory
-            self.assertTrue(store.use_memory)
-            self.assertEqual(store.sqlite_file, "file:nectar.sqlite?mode=memory&cache=shared")
+        import tempfile
 
-            # The store should still be functional
-            store["hello"] = "world"
-            self.assertEqual(store["hello"], "world")
+        with patch("sqlite3.connect", mock_connect):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                store = MyStore(data_dir=tmpdir)
+                # Since standard connect raised an error, it should have fallen back to memory
+                self.assertTrue(store.use_memory)
+                self.assertEqual(store.sqlite_file, "file:nectar.sqlite?mode=memory&cache=shared")
+
+                # The store should still be functional
+                store["hello"] = "world"
+                self.assertEqual(store["hello"], "world")

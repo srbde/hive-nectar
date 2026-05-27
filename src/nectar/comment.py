@@ -209,7 +209,7 @@ class Comment(BlockchainObject):
             return
         [author, permlink] = resolve_authorperm(str(self.identifier))
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
-        from nectarapi.exceptions import InvalidParameters
+        from nectarapi.exceptions import InvalidParameters, RPCError
 
         try:
             if self.api == "condenser_api":
@@ -228,7 +228,7 @@ class Comment(BlockchainObject):
                     content = content["comments"]
                 if isinstance(content, list) and len(content) > 0:
                     content = content[0]
-        except InvalidParameters:
+        except (InvalidParameters, RPCError):
             raise ContentDoesNotExistsException(self.identifier)
         if not content or not content["author"] or not content["permlink"]:
             raise ContentDoesNotExistsException(self.identifier)

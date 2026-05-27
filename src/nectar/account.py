@@ -4647,8 +4647,8 @@ class Account(BlockchainObject):
                     authority["account_auths"] = list(
                         [x for x in authority["account_auths"] if x[0] != foreign_account["name"]]
                     )
-            except Exception:
-                raise ValueError("Unknown foreign account or invalid public key")
+            except Exception as err:
+                raise ValueError("Unknown foreign account or invalid public key") from err
 
         if not affected_items:
             raise ValueError("Changes nothing!")

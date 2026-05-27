@@ -236,7 +236,7 @@ class SQLiteStore(SQLiteFile, SQLiteCommon, StoreInterface):
         try:
             if not self.exists():  # pragma: no cover
                 self.create()
-        except (sqlite3.Error, OSError) as e:
+        except (sqlite3.OperationalError, OSError) as e:
             log.warning(
                 f"Database connection or creation failed for file {self.sqlite_file}: {e}. "
                 "Falling back to an in-memory SQLite database."

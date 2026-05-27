@@ -1,6 +1,6 @@
 # 🍯 Nectar
 
-**The modern Python library for the Hive blockchain. Built for 2025 and beyond.**
+**The modern Python library for the Hive blockchain. Built for production. Made to last.**
 
 `beem` built the foundation of Python development on Hive — but it carries a decade of legacy: unmaintained cryptography, filesystem assumptions that break in containers, and a sprawling API surface held together by history. Nectar is its opinionated spiritual successor, rebuilt from the ground up for security, resilience, and the environments developers actually deploy to today.
 
@@ -74,7 +74,7 @@ from nectar import Hive
 from nectar.transactionbuilder import TransactionBuilder
 from nectarbase.operations import Transfer
 
-hive = Hive(keys=["your-active-private-key"])
+hive = Hive(keys=["your-active-private-key"])  # WARNING: Do not hardcode private keys in production. Load from environment variables or a vault.
 
 tb = TransactionBuilder(blockchain_instance=hive)
 tb.appendOps(Transfer(**{

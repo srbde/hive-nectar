@@ -99,7 +99,10 @@ class Signed_Transaction(GrapheneObject):
 
     def derSigToHexSig(self, s: Union[str, bytes]) -> str:
         """Format DER to HEX signature"""
-        der_bytes = unhexlify(s)
+        if isinstance(s, bytes):
+            der_bytes = s
+        else:
+            der_bytes = unhexlify(s)
         r, s_val = decode_dss_signature(der_bytes)
         return "{:064x}{:064x}".format(r, s_val)
 

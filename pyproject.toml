@@ -62,7 +62,6 @@ dev = [
   "parameterized",
   "pytest",
   "pytest-mock",
-  "pytest-xdist",
   "ruff",
   "sphinx",
   "sphinx-click",
@@ -110,7 +109,7 @@ norecursedirs = [
   "build",
   "examples",
 ]
-addopts = ["-rw", "--doctest-modules", "-n", "auto"]
+addopts = ["-rw", "--doctest-modules"]
 markers = [
   "network: tests that require network access to live blockchain nodes",
 ]

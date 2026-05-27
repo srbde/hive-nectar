@@ -47,7 +47,7 @@ def compressedPubkey(pk: Any) -> bytes:
         bytes: 33-byte compressed public key.
     """
     if isinstance(pk, bytes):
-        return pk
+        return coincurve.PublicKey(pk).format(compressed=True)
     if isinstance(pk, PublicKey):
         return bytes(pk)
     if hasattr(pk, "format"):
