@@ -284,7 +284,7 @@ wheels = [
 [[package]]
 name = "coincurve"
 version = "21.0.0"
-source = { git = "https://github.com/ofek/coincurve?rev=master#7829b29c08ebb1cc80386a1cdaf8c2243c4ef5c5" }
+source = { git = "https://github.com/ofek/coincurve?rev=7829b29c08ebb1cc80386a1cdaf8c2243c4ef5c5#7829b29c08ebb1cc80386a1cdaf8c2243c4ef5c5" }
 
 [[package]]
 name = "colorama"
@@ -560,7 +560,7 @@ requires-dist = [
     { name = "appdirs" },
     { name = "asn1crypto" },
     { name = "click" },
-    { name = "coincurve", git = "https://github.com/ofek/coincurve?rev=master" },
+    { name = "coincurve", git = "https://github.com/ofek/coincurve?rev=7829b29c08ebb1cc80386a1cdaf8c2243c4ef5c5" },
     { name = "cryptography" },
     { name = "diff-match-patch" },
     { name = "httpx2", specifier = ">=2.2.0" },

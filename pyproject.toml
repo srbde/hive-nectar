@@ -78,7 +78,7 @@ url = "https://test.pypi.org/simple/"
 explicit = true
 
 [tool.uv.sources]
-coincurve = { git = "https://github.com/ofek/coincurve", rev = "master" }
+coincurve = { git = "https://github.com/ofek/coincurve", rev = "7829b29c08ebb1cc80386a1cdaf8c2243c4ef5c5" }
 
 [tool.ruff]
 target-version = "py310"
