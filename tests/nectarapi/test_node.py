@@ -41,6 +41,26 @@ class Testcases(unittest.TestCase):
         next(nodes)
         self.assertEqual(nodes.url, nodes[0].url)
 
+        # Test node failure / fallback behavior
+        # Mark node 'b' (index 1) as failed (error_cnt > num_retries)
+        nodes[1].error_cnt = 6
+        self.assertEqual(nodes.working_nodes_count, 2)
+
+        # Advance: currently we are at 'a' (index 0). Next should skip 'b' (index 1) and go to 'c' (index 2)
+        next(nodes)
+        self.assertEqual(nodes.url, "c")
+
+        # Next should wrap around, skipping 'b', and go to 'a'
+        next(nodes)
+        self.assertEqual(nodes.url, "a")
+
+        # Mark all nodes as failed
+        nodes[0].error_cnt = 6
+        nodes[2].error_cnt = 6
+        self.assertEqual(nodes.working_nodes_count, 0)
+        with self.assertRaises(StopIteration):
+            next(nodes)
+
     def test_init(self):
         nodes = Nodes(["a", "b", "c"], 5, 5)
         nodes2 = Nodes(nodes, 5, 5)

@@ -53,19 +53,18 @@ class Nodes(list[Node]):
         return self
 
     def __next__(self) -> str:
-        next_node_count = 0
         if self.freeze_current_node:
             return self.url
-        while next_node_count == 0 and (
-            self.num_retries < 0 or self.node.error_cnt < self.num_retries
-        ):
+        if len(self) == 0:
+            raise StopIteration
+        for _ in range(len(self)):
             self.current_node_index += 1
-            if self.current_node_index >= self.working_nodes_count:
+            if self.current_node_index >= len(self) or self.current_node_index < 0:
                 self.current_node_index = 0
-            next_node_count += 1
-            if next_node_count > self.working_nodes_count + 1:
-                raise StopIteration
-        return self.url
+            node = self[self.current_node_index]
+            if self.num_retries < 0 or node.error_cnt <= self.num_retries:
+                return node.url
+        raise StopIteration
 
     next = __next__  # Python 2
 
