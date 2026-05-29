@@ -126,7 +126,11 @@ class Nodes(list):
 
     @property
     def error_cnt(self) -> int:
-        return self.node.error_cnt
+        # Read from the Node list element directly — this counter is never
+        # reset by the pool manager, so it reliably tracks lifetime failures
+        # for the GrapheneRPC num_retries budget.
+        n = self.node
+        return n.error_cnt
 
     @property
     def error_cnt_call(self) -> int:
@@ -138,11 +142,17 @@ class Nodes(list):
 
     def disable_node(self) -> None:
         """Disable current node by marking it failed."""
+        n = self.node
+        n.error_cnt = self.num_retries + 1  # guarantee it looks exhausted
         if self.pool_manager:
             self.pool_manager.mark_node_failed(self.pool_manager.get_active_node())
 
     def increase_error_cnt(self) -> None:
         """Increase node error count for current node."""
+        # Increment the persistent counter on the Node list element first
+        n = self.node
+        n.error_cnt += 1
+        # Then propagate the failure into the pool for routing decisions
         if self.pool_manager:
             self.pool_manager.mark_node_failed(self.pool_manager.get_active_node())
 
@@ -176,6 +186,10 @@ class Nodes(list):
         showMsg: bool = True,
     ) -> None:
         """Sleep and check if num_retries is reached. Raises if budget exhausted."""
+        first_or_last_retry = (
+            self.error_cnt_call == 1 or self.error_cnt_call == self.num_retries_call
+        )
+
         if errorMsg:
             log.warning("Error: {}".format(errorMsg))
 
@@ -184,11 +198,11 @@ class Nodes(list):
             if self.num_retries_call >= 0 and cnt > self.num_retries_call:
                 raise CallRetriesReached()
         else:
-            cnt = self.error_cnt
-            if self.num_retries >= 0 and self.working_nodes_count == 0:
+            cnt = self.error_cnt  # persistent per-node counter, never reset by pool
+            if self.num_retries >= 0 and cnt > self.num_retries:
                 raise NumRetriesReached()
 
-        if showMsg and cnt in (1, self.num_retries_call if call_retry else self.num_retries):
+        if showMsg and first_or_last_retry:
             if call_retry:
                 log.warning(
                     "Retry RPC Call on node: %s (%d/%d)" % (self.url, cnt, self.num_retries_call)

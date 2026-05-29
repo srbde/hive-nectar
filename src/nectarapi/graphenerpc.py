@@ -193,18 +193,24 @@ class GrapheneRPC:
                 self._proxy: Optional[str] = None
                 if self.use_tor:
                     self._proxy = "socks5h://localhost:9050"
-                # Use a custom failover transport if multiple nodes exist
+                # Use a custom failover transport if multiple nodes exist.
+                # Build the client ONCE per GrapheneRPC instance (stored on self)
+                # to avoid creating a new connection pool on every retry call.
                 if len(self.nodes) > 1:
-                    pool_mgr = getattr(self.nodes, "pool_manager", None)
-                    if pool_mgr is None:
-                        from .pool import NodePoolManager
+                    if not hasattr(self, "_failover_session") or self._failover_session is None:
+                        pool_mgr = getattr(self.nodes, "pool_manager", None)
+                        if pool_mgr is None:
+                            from .pool import NodePoolManager
 
-                        pool_mgr = NodePoolManager([n.url for n in self.nodes])
-                        self.nodes.pool_manager = pool_mgr
-                    from .transports import FailoverSyncTransport
+                            pool_mgr = NodePoolManager(
+                                [self.nodes[i].url for i in range(len(self.nodes))]
+                            )
+                            self.nodes.pool_manager = pool_mgr
+                        from .transports import FailoverSyncTransport
 
-                    transport = FailoverSyncTransport(pool_mgr, proxy=self._proxy)
-                    self.session = httpx2.Client(http2=False, transport=transport)
+                        transport = FailoverSyncTransport(pool_mgr, proxy=self._proxy)
+                        self._failover_session = httpx2.Client(http2=False, transport=transport)
+                    self.session = self._failover_session
                 else:
                     self.session = shared_httpx_client(self._proxy)
                 self.ws = None

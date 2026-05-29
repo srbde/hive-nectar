@@ -77,13 +77,18 @@ class NodePoolManager:
             if healthy_sorted:
                 self._active_node = healthy_sorted[0]
             else:
-                # Fallback: if all nodes are failed, reset them to try again
-                log.warning("All nodes marked failed in pool, resetting node pool health...")
-                for n in self.nodes:
-                    n.healthy = True
-                    n.penalty = 0.0
-                    n.error_cnt = 0
-                self._active_node = self.nodes[0]
+                # All nodes are currently marked unhealthy.
+                # Do NOT reset health flags here — the GrapheneRPC retry budget
+                # (num_retries) must be allowed to expire naturally so that
+                # NumRetriesReached is eventually raised.  Instead, pick the
+                # node with the lowest (finite or inf) penalty so requests have
+                # somewhere to go, and let the transport keep raising exceptions
+                # which accumulate in the caller's error counter.
+                log.warning(
+                    "All nodes marked failed in pool; picking least-bad node for next attempt."
+                )
+                all_sorted = sorted(self.nodes, key=lambda x: x.penalty)
+                self._active_node = all_sorted[0]
 
     def probe_node_health(self, client: httpx2.Client, node: RPCNode) -> None:
         start = time.monotonic()
