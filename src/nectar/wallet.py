@@ -5,6 +5,7 @@ from typing import Any, Dict, Generator, List, Optional, Union
 
 from nectar.instance import shared_blockchain_instance
 from nectargraphenebase.account import PrivateKey
+from nectarstorage import KeyStoreInterface
 from nectarstorage.exceptions import KeyAlreadyInStoreException
 
 from .account import Account
@@ -83,7 +84,11 @@ class Wallet:
     """
 
     def __init__(
-        self, blockchain_instance: Optional[Any] = None, *args: Any, **kwargs: Any
+        self,
+        blockchain_instance: Optional[Any] = None,
+        store: Optional[KeyStoreInterface] = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         """
         Initialize the Wallet, binding it to a blockchain instance and setting up the underlying key store.
@@ -92,9 +97,10 @@ class Wallet:
 
         Parameters:
             blockchain_instance (optional): Explicit blockchain/RPC wrapper to use; if omitted the module's shared blockchain instance is used.
+            store (optional): Explicit key store conforming to KeyStoreInterface.
 
         Side effects:
-            - Creates and assigns self.store to either an in-memory or persistent key store.
+            - Creates and assigns self.store to either an in-memory, injected, or persistent key store.
             - Calls setKeys when an in-memory store is selected.
         """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
@@ -104,7 +110,9 @@ class Wallet:
             kwargs["keys"] = kwargs["wif"]
 
         self.store: Any
-        if "keys" in kwargs and len(kwargs["keys"]) > 0:
+        if store is not None:
+            self.store = store
+        elif "keys" in kwargs and len(kwargs["keys"]) > 0:
             from nectarstorage import InRamPlainKeyStore
 
             self.store = InRamPlainKeyStore()

@@ -1,6 +1,6 @@
 # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/interfaces.py
 from collections.abc import MutableMapping
-from typing import Any, Iterator
+from typing import Any, Iterator, Optional, Protocol
 
 
 class StoreInterface(MutableMapping):
@@ -242,3 +242,29 @@ class EncryptedTokenInterface(TokenInterface):
     def lock(self):
         """Lock the wallet again"""
         raise NotImplementedError
+
+
+class KeyStoreInterface(Protocol):
+    """Protocol defining the interface for key storage."""
+
+    def is_encrypted(self) -> bool: ...
+
+    def unlock(self, password: str) -> bool: ...
+
+    def lock(self) -> bool: ...
+
+    def locked(self) -> bool: ...
+
+    def change_password(self, new_pwd: str) -> None: ...
+
+    def getPublicKeys(self) -> list[str]: ...
+
+    def getPrivateKeyForPublicKey(self, pub: str) -> Optional[str]: ...
+
+    def add(self, wif: str, pub: Optional[str] = None) -> None: ...
+
+    def delete(self, key: str) -> None: ...
+
+    def wipe(self) -> None: ...
+
+    def wipe_masterpassword(self) -> None: ...

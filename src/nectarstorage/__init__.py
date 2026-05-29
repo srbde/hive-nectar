@@ -12,6 +12,7 @@ from .base import (
     SqlitePlainKeyStore,
     SqlitePlainTokenStore,
 )
+from .interfaces import KeyStoreInterface
 from .sqlite import SQLiteCommon, SQLiteFile
 
 __all__ = [
@@ -34,6 +35,7 @@ __all__ = [
     "SqlitePlainTokenStore",
     "SQLiteCommon",
     "SQLiteFile",
+    "KeyStoreInterface",
 ]
 
 
