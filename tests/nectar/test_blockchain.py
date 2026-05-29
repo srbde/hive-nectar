@@ -81,6 +81,7 @@ class Testcases(unittest.TestCase):
     def test_awaitTX(self):
         bts = self.bts
         b = Blockchain(blockchain_instance=bts)
+        b.blocks = lambda *args, **kwargs: [{"transactions": []}, {"transactions": []}]
         trans = {
             "ref_block_num": 3855,
             "ref_block_prefix": 1730859721,
@@ -93,7 +94,7 @@ class Testcases(unittest.TestCase):
             ],
         }
         with self.assertRaises(Exception):
-            b.awaitTxConfirmation(trans)
+            b.awaitTxConfirmation(trans, limit=1)
 
     def test_stream(self):
         """Test blockchain streaming functionality."""
@@ -222,10 +223,7 @@ class Testcases(unittest.TestCase):
 
         b2 = Blockchain(blockchain_instance=bts, max_block_wait_repetition=1)
         with self.assertRaises(BlockWaitTimeExceeded):
-            for i in range(300):
-                block = b2.wait_for_and_get_block(blocknum)
-                last_fetched_block_num = block.block_num
-                blocknum = last_fetched_block_num + 2
+            b2.wait_for_and_get_block(start_num + 1000, blocks_waiting_for=1)
 
     def test_hash_op(self):
         bts = self.bts

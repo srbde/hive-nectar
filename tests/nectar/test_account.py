@@ -664,7 +664,7 @@ class Testcases(unittest.TestCase):
             self.assertTrue(replies[0].depth > 0)
 
     def test_get_vote_pct_for_vote_value(self):
-        account = Account("thecrazygm.test", blockchain_instance=self.bts)
+        account = Account("thecrazygm", blockchain_instance=self.bts)
         for vote_pwr in range(5, 100, 5):
             self.assertTrue(
                 9900

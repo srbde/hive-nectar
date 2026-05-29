@@ -1,8 +1,18 @@
 Changelog
 =========
 
+1.0.1 - 2026-05-29
+------------------
+
+Maintenance
+~~~~~~~~~~~
+
+- **Tests**: Modernized the test suite structure. Rewrote utility tests (``test_utils.py``) to use ``pytest`` and pure unit test functions in ``tests/unit/test_utils.py``.
+- **VCR**: Resolved connection pool leaks and deadlocks under VCR recording/playback by override patching default connection limits.
+
 1.0.0 - 2026-05-22
 ------------------
+
 
 Major Changes
 ~~~~~~~~~~~~~
