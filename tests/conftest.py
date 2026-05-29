@@ -1,8 +1,15 @@
 """Test configuration ensuring local sources are importable."""
 
+import sys
+
+import httpcore2
+import httpx2
+
+sys.modules["httpcore"] = httpcore2
+sys.modules["httpx"] = httpx2
+
 import os
 import shutil
-import sys
 import tempfile
 from pathlib import Path
 
@@ -73,3 +80,4 @@ def pytest_collection_modifyitems(config, items):
 
             if not is_offline:
                 item.add_marker(pytest.mark.network)
+                item.add_marker(pytest.mark.vcr)

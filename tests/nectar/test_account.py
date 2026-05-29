@@ -562,7 +562,7 @@ class Testcases(unittest.TestCase):
     def test_history_votes(self):
         """Test history filtering for votes."""
         hv = self.bts
-        account = Account("gtg", blockchain_instance=hv)
+        account = Account("thecrazygm.test", blockchain_instance=hv)
         limit_time = datetime.now(timezone.utc) - timedelta(days=2)
         votes_list = []
         for v in account.history(start=limit_time, only_ops=["vote"]):
@@ -580,7 +580,7 @@ class Testcases(unittest.TestCase):
             # If no votes found, that's okay
             self.assertTrue(len(votes_list) == 0)
 
-        account = Account("open.mithril", blockchain_instance=hv)
+        account = Account("thecrazygm.test", blockchain_instance=hv)
         votes_list = list(account.history(only_ops=["vote"]))
         votes_list2 = list(account.history_reverse(only_ops=["vote"]))
         self.assertEqual(len(votes_list), len(votes_list2))
@@ -591,17 +591,17 @@ class Testcases(unittest.TestCase):
     def test_history_op_filter(self):
         hv = Hive("https://api.hive.blog")
         account = Account("open.mithril", blockchain_instance=hv)
-        votes_list = list(account.history(only_ops=["vote"]))
-        other_list = list(account.history(exclude_ops=["vote"]))
-        all_list = list(account.history())
+        votes_list = list(account.history(only_ops=["vote"], stop=30))
+        other_list = list(account.history(exclude_ops=["vote"], stop=30))
+        all_list = list(account.history(stop=30))
         self.assertTrue(len(all_list) >= len(other_list))
         index = 0
         for h in sorted((votes_list + other_list), key=lambda h: h["index"]):
             self.assertEqual(index, h["index"])
             index += 1
-        votes_list = list(account.history_reverse(only_ops=["vote"]))
-        other_list = list(account.history_reverse(exclude_ops=["vote"]))
-        all_list = list(account.history_reverse())
+        votes_list = list(account.history_reverse(only_ops=["vote"], start=30, stop=0))
+        other_list = list(account.history_reverse(exclude_ops=["vote"], start=30, stop=0))
+        all_list = list(account.history_reverse(start=30, stop=0))
         self.assertTrue(len(all_list) >= len(other_list))
         index = 0
         for h in sorted((votes_list + other_list), key=lambda h: h["index"]):
@@ -612,17 +612,21 @@ class Testcases(unittest.TestCase):
         hv = Hive("https://api.hive.blog")
         batch_size = 100
         account = Account("open.mithril", blockchain_instance=hv)
-        votes_list = list(account.history(only_ops=["vote"], batch_size=batch_size))
-        other_list = list(account.history(exclude_ops=["vote"], batch_size=batch_size))
-        all_list = list(account.history(batch_size=batch_size))
+        votes_list = list(account.history(only_ops=["vote"], stop=30, batch_size=batch_size))
+        other_list = list(account.history(exclude_ops=["vote"], stop=30, batch_size=batch_size))
+        all_list = list(account.history(stop=30, batch_size=batch_size))
         self.assertTrue(len(all_list) >= len(other_list))
         index = 0
         for h in sorted((votes_list + other_list), key=lambda h: h["index"]):
             self.assertEqual(index, h["index"])
             index += 1
-        votes_list = list(account.history_reverse(only_ops=["vote"], batch_size=batch_size))
-        other_list = list(account.history_reverse(exclude_ops=["vote"], batch_size=batch_size))
-        all_list = list(account.history_reverse(batch_size=batch_size))
+        votes_list = list(
+            account.history_reverse(only_ops=["vote"], start=30, stop=0, batch_size=batch_size)
+        )
+        other_list = list(
+            account.history_reverse(exclude_ops=["vote"], start=30, stop=0, batch_size=batch_size)
+        )
+        all_list = list(account.history_reverse(start=30, stop=0, batch_size=batch_size))
         self.assertTrue(len(all_list) >= len(other_list))
         index = 0
         for h in sorted((votes_list + other_list), key=lambda h: h["index"]):
@@ -650,7 +654,7 @@ class Testcases(unittest.TestCase):
             self.assertTrue(posts[0].depth == 0)
 
     def test_reply_history(self):
-        account = Account("thecrazygm", blockchain_instance=self.bts)
+        account = Account("thecrazygm.test", blockchain_instance=self.bts)
         replies = []
         for r in account.reply_history(limit=1):
             replies.append(r)
@@ -660,7 +664,7 @@ class Testcases(unittest.TestCase):
             self.assertTrue(replies[0].depth > 0)
 
     def test_get_vote_pct_for_vote_value(self):
-        account = Account("thecrazygm", blockchain_instance=self.bts)
+        account = Account("thecrazygm.test", blockchain_instance=self.bts)
         for vote_pwr in range(5, 100, 5):
             self.assertTrue(
                 9900

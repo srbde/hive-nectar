@@ -62,6 +62,7 @@ dev = [
   "parameterized",
   "pytest",
   "pytest-mock",
+  "pytest-recording",
   "ruff",
   "sphinx",
   "sphinx-click",
