@@ -1,6 +1,44 @@
 Changelog
 =========
 
+1.0.2 - 2026-05-29
+------------------
+
+Features
+~~~~~~~~
+
+- **GP_6: Async Multi-Endpoint RPC Failover** (``GP_6-nectar-failover``):
+  Eliminates the "limping RPC" problem by replacing the static HTTP
+  transport with a dynamic, self-healing connection pool.
+
+  - New ``NodePoolManager`` (``nectarapi/pool.py``) tracks all configured
+    RPC endpoints in parallel, scoring each with a **multi-factor penalty**:
+    ``Penalty = latency_ms + (block_drift × 100)``. Nodes lagging more than
+    15 blocks behind the pool's max head height are automatically demoted
+    with a massive penalty (100 000 ms) and marked unhealthy.
+  - New ``FailoverSyncTransport`` and ``FailoverAsyncTransport``
+    (``nectarapi/transports.py``) subclass the ``httpx2`` low-level transport
+    layer and transparently rewrite request URLs to the current best-scored
+    node. On ``5xx`` responses or connection errors the next-best node is
+    tried immediately without any changes to calling code.
+  - ``Nodes`` (``nectarapi/node.py``) now delegates active-node selection to
+    ``NodePoolManager`` while preserving 100% backward-compatible public API
+    (``working_nodes_count``, ``increase_error_cnt``,
+    ``sleep_and_check_retries``, etc.).
+  - ``GrapheneRPC.rpcconnect`` mounts ``FailoverSyncTransport`` automatically
+    when multiple node URLs are configured.
+  - ``BlockChainInstance.connect`` exposes ``self.client``
+    (``httpx2.Client``) and ``self.async_client`` (``httpx2.AsyncClient``)
+    with failover transports pre-mounted for direct use in async scripts.
+  - ``NodeList`` (``nectar/nodelist.py``) init is now **non-blocking**:
+    starts immediately from disk cache or static fallback, and refreshes
+    from the PeakD beacon API in a background daemon thread.
+
+- **Tests**: 32 new fully offline unit tests in
+  ``tests/unit/test_failover.py`` cover ``RPCNode``, ``NodePoolManager``
+  penalty scoring and thread safety, ``Nodes`` adapter, sync/async transport
+  failover, and end-to-end routing integration.
+
 1.0.1 - 2026-05-29
 ------------------
 
