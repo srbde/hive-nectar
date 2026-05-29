@@ -1,3 +1,3 @@
 """THIS FILE IS GENERATED FROM nectar PYPROJECT.TOML."""
 
-version = "1.0.2"
+version = "1.0.3"
