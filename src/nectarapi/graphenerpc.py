@@ -197,7 +197,10 @@ class GrapheneRPC:
                 # Build the client ONCE per GrapheneRPC instance (stored on self)
                 # to avoid creating a new connection pool on every retry call.
                 if len(self.nodes) > 1:
-                    if not hasattr(self, "_failover_session") or self._failover_session is None:
+                    if (
+                        "_failover_session" not in self.__dict__
+                        or self.__dict__["_failover_session"] is None
+                    ):
                         pool_mgr = getattr(self.nodes, "pool_manager", None)
                         if pool_mgr is None:
                             from .pool import NodePoolManager
@@ -209,8 +212,10 @@ class GrapheneRPC:
                         from .transports import FailoverSyncTransport
 
                         transport = FailoverSyncTransport(pool_mgr, proxy=self._proxy)
-                        self._failover_session = httpx2.Client(http2=False, transport=transport)
-                    self.session = self._failover_session
+                        self.__dict__["_failover_session"] = httpx2.Client(
+                            http2=False, transport=transport
+                        )
+                    self.session = self.__dict__["_failover_session"]
                 else:
                     self.session = shared_httpx_client(self._proxy)
                 self.ws = None
