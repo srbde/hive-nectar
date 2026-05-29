@@ -193,8 +193,20 @@ class GrapheneRPC:
                 self._proxy: Optional[str] = None
                 if self.use_tor:
                     self._proxy = "socks5h://localhost:9050"
-                # Use a shared client unless proxies are required.
-                self.session = shared_httpx_client(self._proxy)
+                # Use a custom failover transport if multiple nodes exist
+                if len(self.nodes) > 1:
+                    pool_mgr = getattr(self.nodes, "pool_manager", None)
+                    if pool_mgr is None:
+                        from .pool import NodePoolManager
+
+                        pool_mgr = NodePoolManager([n.url for n in self.nodes])
+                        self.nodes.pool_manager = pool_mgr
+                    from .transports import FailoverSyncTransport
+
+                    transport = FailoverSyncTransport(pool_mgr, proxy=self._proxy)
+                    self.session = httpx2.Client(http2=False, transport=transport)
+                else:
+                    self.session = shared_httpx_client(self._proxy)
                 self.ws = None
                 self.headers = {
                     "User-Agent": "nectar v%s" % (nectar_version),

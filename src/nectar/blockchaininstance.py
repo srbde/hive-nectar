@@ -158,6 +158,9 @@ class BlockChainInstance:
         """
 
         self.rpc = None
+        self.client = None
+        self.async_client = None
+        self.pool_manager = None
         self.debug = debug
 
         self.offline = bool(kwargs.get("offline", False))
@@ -245,6 +248,31 @@ class BlockChainInstance:
             use_tor = False
 
         self.rpc = NodeRPC(node, rpcuser, rpcpassword, use_tor=use_tor, **kwargs)
+
+        import httpx2
+
+        node_list = node if isinstance(node, list) else ([node] if node else [])
+        if not node_list and self.rpc and hasattr(self.rpc, "nodes"):
+            node_list = self.rpc.nodes.get_nodes()
+
+        if len(node_list) > 1:
+            from nectarapi.pool import NodePoolManager
+            from nectarapi.transports import FailoverAsyncTransport, FailoverSyncTransport
+
+            self.pool_manager = NodePoolManager(node_list)
+            if self.rpc and hasattr(self.rpc, "nodes"):
+                self.rpc.nodes.pool_manager = self.pool_manager
+            self.sync_transport = FailoverSyncTransport(
+                self.pool_manager, proxy="socks5h://localhost:9050" if use_tor else None
+            )
+            self.async_transport = FailoverAsyncTransport(
+                self.pool_manager, proxy="socks5h://localhost:9050" if use_tor else None
+            )
+            self.client = httpx2.Client(transport=self.sync_transport)
+            self.async_client = httpx2.AsyncClient(transport=self.async_transport)
+        else:
+            self.client = httpx2.Client()
+            self.async_client = httpx2.AsyncClient()
 
     def is_connected(self) -> bool:
         """Returns if rpc is connected"""

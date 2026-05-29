@@ -1,0 +1,159 @@
+import asyncio
+import logging
+import threading
+import time
+from typing import List
+from urllib.parse import urlparse
+
+import httpx2
+
+log = logging.getLogger(__name__)
+
+
+class RPCNode:
+    def __init__(self, url: str) -> None:
+        self.url = url
+        parsed = urlparse(url)
+        self.scheme = parsed.scheme or "https"
+        self.host = parsed.hostname or ""
+        self.port = parsed.port
+        self.penalty = 0.0
+        self.healthy = True
+        self.error_cnt = 0
+        self.error_cnt_call = 0
+        self.head_block_number = 0
+        self.latency = 0.0
+
+    def __repr__(self) -> str:
+        return f"<RPCNode {self.url} penalty={self.penalty:.1f} healthy={self.healthy}>"
+
+
+class NodePoolManager:
+    def __init__(self, node_urls: List[str], max_lag: int = 15) -> None:
+        if not node_urls:
+            node_urls = ["https://api.hive.blog"]
+        self.nodes = [RPCNode(url) for url in node_urls]
+        self.max_lag = max_lag
+        self.lock = threading.RLock()
+        self._active_node = self.nodes[0]
+        self._recalculate_best_node()
+
+    def get_active_node(self) -> RPCNode:
+        with self.lock:
+            return self._active_node
+
+    async def get_active_node_async(self) -> RPCNode:
+        # Re-use synchronous getter as lock is a standard threading RLock (fast/non-blocking for access)
+        return self.get_active_node()
+
+    def mark_node_failed(self, node: RPCNode) -> None:
+        with self.lock:
+            node.healthy = False
+            node.error_cnt += 1
+            node.penalty = float("inf")
+            self._recalculate_best_node()
+
+    async def mark_node_failed_async(self, node: RPCNode) -> None:
+        self.mark_node_failed(node)
+
+    def _recalculate_best_node(self) -> None:
+        with self.lock:
+            # Recalculate block drift D relative to max block number observed
+            max_block = max([n.head_block_number for n in self.nodes if n.healthy] or [0])
+            for n in self.nodes:
+                if not n.healthy:
+                    n.penalty = float("inf")
+                    continue
+                drift = max(0, max_block - n.head_block_number)
+                if drift > self.max_lag:
+                    n.penalty = n.latency + 100000.0
+                    n.healthy = False
+                else:
+                    n.penalty = n.latency + (drift * 100)
+                    n.healthy = True
+
+            # Sort by lowest penalty
+            healthy_sorted = sorted([n for n in self.nodes if n.healthy], key=lambda x: x.penalty)
+            if healthy_sorted:
+                self._active_node = healthy_sorted[0]
+            else:
+                # Fallback: if all nodes are failed, reset them to try again
+                log.warning("All nodes marked failed in pool, resetting node pool health...")
+                for n in self.nodes:
+                    n.healthy = True
+                    n.penalty = 0.0
+                    n.error_cnt = 0
+                self._active_node = self.nodes[0]
+
+    def probe_node_health(self, client: httpx2.Client, node: RPCNode) -> None:
+        start = time.monotonic()
+        try:
+            response = client.post(
+                node.url,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "condenser_api.get_dynamic_global_properties",
+                    "params": [],
+                },
+                timeout=3.0,
+            )
+            latency = (time.monotonic() - start) * 1000
+            node.latency = latency
+            if response.status_code == 200:
+                data = response.json()
+                if "result" in data and "head_block_number" in data["result"]:
+                    node.head_block_number = int(data["result"]["head_block_number"])
+                    node.healthy = True
+                    node.error_cnt_call = 0
+                    return
+            raise ValueError("Invalid response format or status")
+        except Exception as e:
+            log.debug(f"Health probe failed for {node.url}: {e}")
+            node.healthy = False
+            node.penalty = float("inf")
+
+    async def probe_node_health_async(self, client: httpx2.AsyncClient, node: RPCNode) -> None:
+        start = time.monotonic()
+        try:
+            response = await client.post(
+                node.url,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "condenser_api.get_dynamic_global_properties",
+                    "params": [],
+                },
+                timeout=3.0,
+            )
+            latency = (time.monotonic() - start) * 1000
+            node.latency = latency
+            if response.status_code == 200:
+                data = response.json()
+                if "result" in data and "head_block_number" in data["result"]:
+                    node.head_block_number = int(data["result"]["head_block_number"])
+                    node.healthy = True
+                    node.error_cnt_call = 0
+                    return
+            raise ValueError("Invalid response format or status")
+        except Exception as e:
+            log.debug(f"Async health probe failed for {node.url}: {e}")
+            node.healthy = False
+            node.penalty = float("inf")
+
+    def update_pool(self) -> None:
+        with httpx2.Client(timeout=3.0) as client:
+            threads = []
+            for node in self.nodes:
+                t = threading.Thread(target=self.probe_node_health, args=(client, node))
+                threads.append(t)
+                t.start()
+            for t in threads:
+                t.join()
+        self._recalculate_best_node()
+
+    async def update_pool_async(self) -> None:
+        async with httpx2.AsyncClient(timeout=3.0) as client:
+            tasks = [self.probe_node_health_async(client, node) for node in self.nodes]
+            await asyncio.gather(*tasks, return_exceptions=True)
+        self._recalculate_best_node()

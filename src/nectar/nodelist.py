@@ -163,37 +163,40 @@ class NodeList(list):
     """
 
     def __init__(self):
-        """Initialize NodeList with nodes from beacon API or static fallback."""
+        """Initialize NodeList with nodes from beacon API or static fallback without blocking."""
         super().__init__()
         self._refresh_nodes()
 
     def _refresh_nodes(self) -> None:
-        """Refresh node list from beacon API or use static fallback."""
-        beacon_nodes = fetch_beacon_nodes()
+        """Refresh node list from disk cache or static fallback, and trigger async update."""
+        loaded = False
+        if CACHE_FILE.exists():
+            try:
+                with open(CACHE_FILE, "r") as f:
+                    raw = json.load(f)
+                nodes = extract_nodes_from_raw(raw, "disk cache")
+                if nodes is not None:
+                    internal_nodes = []
+                    for node in nodes:
+                        if node.get("score", 0) > 0:
+                            internal_nodes.append(
+                                {
+                                    "url": node["endpoint"],
+                                    "version": node.get("version", "unknown"),
+                                    "type": "appbase",
+                                    "owner": node.get("name", "unknown"),
+                                    "hive": True,
+                                    "score": node.get("score", 0),
+                                }
+                            )
+                    internal_nodes.sort(key=lambda x: x["score"], reverse=True)
+                    self[:] = internal_nodes
+                    loaded = True
+                    log.info(f"Loaded {len(internal_nodes)} nodes from PeakD beacon API cache")
+            except Exception as e:
+                log.warning(f"Failed to read disk cache during NodeList init: {e}")
 
-        if beacon_nodes:
-            # Convert beacon format to our internal format
-            nodes = []
-            for node in beacon_nodes:
-                # Only include nodes with decent performance (score > 0)
-                if node.get("score", 0) > 0:
-                    nodes.append(
-                        {
-                            "url": node["endpoint"],
-                            "version": node.get("version", "unknown"),
-                            "type": "appbase",  # All beacon nodes are appbase
-                            "owner": node.get("name", "unknown"),
-                            "hive": True,
-                            "score": node.get("score", 0),
-                        }
-                    )
-
-            # Sort by score (highest first)
-            nodes.sort(key=lambda x: x["score"], reverse=True)
-            super().__init__(nodes)
-            log.info(f"Loaded {len(nodes)} nodes from PeakD beacon API")
-        else:
-            # Use static fallback
+        if not loaded:
             nodes = [
                 {
                     "url": url,
@@ -205,8 +208,35 @@ class NodeList(list):
                 }
                 for url in STATIC_NODES
             ]
-            super().__init__(nodes)
+            self[:] = nodes
             log.warning(f"Using static fallback nodes ({len(nodes)} nodes)")
+
+        threading.Thread(target=self._async_fetch, daemon=True).start()
+
+    def _async_fetch(self) -> None:
+        try:
+            beacon_nodes = fetch_beacon_nodes()
+            if beacon_nodes:
+                internal_nodes = []
+                for node in beacon_nodes:
+                    if node.get("score", 0) > 0:
+                        internal_nodes.append(
+                            {
+                                "url": node["endpoint"],
+                                "version": node.get("version", "unknown"),
+                                "type": "appbase",
+                                "owner": node.get("name", "unknown"),
+                                "hive": True,
+                                "score": node.get("score", 0),
+                            }
+                        )
+                internal_nodes.sort(key=lambda x: x["score"], reverse=True)
+                self[:] = internal_nodes
+                log.info(
+                    f"Background thread loaded {len(internal_nodes)} nodes from PeakD beacon API"
+                )
+        except Exception as e:
+            log.warning(f"Failed to fetch beacon nodes in background: {e}")
 
     def get_nodes(
         self,
