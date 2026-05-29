@@ -8,6 +8,12 @@ import httpcore2
 import httpx2
 import pytest
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+SRC_PATH = PROJECT_ROOT / "src"
+
+if SRC_PATH.exists():
+    sys.path.insert(0, str(SRC_PATH))
+
 # Alias httpx/httpcore for VCR compatibility
 sys.modules["httpcore"] = httpcore2
 sys.modules["httpx"] = httpx2
@@ -54,9 +60,9 @@ def pytest_collection_modifyitems(config, items):
     }
 
     offline_dirs = {
-        "nectarbase",
-        "nectargraphenebase",
-        "nectarstorage",
+        "legacy_nectarbase",
+        "legacy_nectargraphene",
+        "legacy_nectarstorage",
     }
 
     for item in items:
