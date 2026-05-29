@@ -208,7 +208,7 @@ def test_generate_password():
 
 
 def test_import_coldcard_wif():
-    data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "nectar", "data")
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
     file = os.path.join(data_dir, "drv-wif-idx100.txt")
     wif, path = import_coldcard_wif(file)
     assert wif == "L5K7x3Zs6jgY5jMovRzdgucWHmvuidyPj1f8ioCAzGjHMhjmL5EL"
@@ -216,7 +216,7 @@ def test_import_coldcard_wif():
 
 
 def test_import_pubkeys():
-    data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "nectar", "data")
+    data_dir = os.path.join(os.path.dirname(__file__), "data")
     file = os.path.join(data_dir, "pubkey.json")
     owner, active, posting, memo = import_pubkeys(file)
     assert owner == "STM51mq6zWEz3NGRYL8uMpJAe9c1qzf4ufh2ha4QqWzizqVrPL9Nq"

@@ -98,7 +98,7 @@ ignore = ["E501"]
 "__init__.py" = ["E402"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests/unit"]
 python_files = ["test_*.py"]
 norecursedirs = [
   ".git",
