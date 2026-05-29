@@ -471,7 +471,7 @@ class AccountOperationsMixin:
         to_name = extract_account_name(to)
         account_name = extract_account_name(account)
         if memo and memo[0] == "#":
-            from .memo import Memo
+            from nectar.memo import Memo
 
             memoObj = Memo(from_account=account, to_account=to, blockchain_instance=self.blockchain)
             encrypted_memo = memoObj.encrypt(memo[1:])
@@ -531,7 +531,7 @@ class AccountOperationsMixin:
         to_name = extract_account_name(to)
         account_name = extract_account_name(account)
         if memo and memo[0] == "#":
-            from .memo import Memo
+            from nectar.memo import Memo
 
             memoObj = Memo(from_account=account, to_account=to, blockchain_instance=self.blockchain)
             encrypted_memo = memoObj.encrypt(memo[1:])

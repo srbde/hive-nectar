@@ -218,7 +218,7 @@ class AccountQueriesMixin:
                 ret = _extract_blog_items(ret)
                 return [c for c in ret]
             else:
-                from .comment import Comment
+                from nectar.comment import Comment
 
                 ret = self.blockchain.rpc.get_blog(
                     account,
@@ -2101,7 +2101,7 @@ class AccountQueriesMixin:
             query_limit = 100
             if limit is not None:
                 query_limit = min(limit - feed_count + 1, query_limit)
-            from .discussions import Discussions_by_feed, Query
+            from nectar.discussions import Discussions_by_feed, Query
 
             query = Query(
                 start_author=start_author,
@@ -2163,7 +2163,7 @@ class AccountQueriesMixin:
             if limit is not None and reblogs:
                 query_limit = min(limit - post_count + 1, query_limit)
 
-            from .discussions import Discussions_by_blog
+            from nectar.discussions import Discussions_by_blog
 
             query = {
                 "start_author": start_author,
@@ -2223,7 +2223,7 @@ class AccountQueriesMixin:
             query_limit = 100
             if limit is not None:
                 query_limit = min(limit - comment_count + 1, query_limit)
-            from .discussions import Discussions_by_comments
+            from nectar.discussions import Discussions_by_comments
 
             query = {
                 "start_author": account["name"],
@@ -2305,7 +2305,7 @@ class AccountQueriesMixin:
             query_limit = 100
             if limit is not None:
                 query_limit = min(limit - reply_count + 1, query_limit)
-            from .discussions import Replies_by_last_update
+            from nectar.discussions import Replies_by_last_update
 
             query = {
                 "start_author": start_author,
