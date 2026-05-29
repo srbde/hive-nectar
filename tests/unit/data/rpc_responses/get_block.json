@@ -1,0 +1,16 @@
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "previous": "0000000000000000000000000000000000000000",
+    "timestamp": "2016-09-01T00:00:00",
+    "witness": "initminer",
+    "transaction_merkle_root": "0000000000000000000000000000000000000000",
+    "extensions": [],
+    "witness_signature": "202e8c",
+    "transactions": [],
+    "block_id": "0000000100000000000000000000000000000000",
+    "signing_key": "STM6oVMzJJJgSu3hV1DZBcLdMUJYj3Cs6kGXf6WVLP3HhgLgNkA5J",
+    "transaction_ids": []
+  },
+  "id": 1
+}
