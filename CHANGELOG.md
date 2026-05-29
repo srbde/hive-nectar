@@ -5,6 +5,9 @@
 ### Maintenance
 
 - **Tests**: Modernized the test suite structure. Rewrote utility tests (`test_utils.py`) to use `pytest` and pure unit test functions in `tests/unit/test_utils.py`.
+- **Test Isolation**: Moved fragile legacy integration tests to `tests/legacy/` and prefixed directories with `legacy_` to prevent Python path shadowing conflicts. Cleaned up the root `tests/conftest.py` and moved VCR/monkeypatching configuration into `tests/legacy/conftest.py`.
+- **Cryptography Tests**: Migrated and modernized the entire offline cryptography unit test suite (`test_aes.py`, `test_base58.py`, `test_bip32.py`, `test_bip38.py`, `test_ecdsa.py`, `test_key_format.py`, `test_tweak_add.py`, `test_ec_basic.py`) into `tests/unit/` using standard pytest assertions, fixtures, and parameterizations.
+- **API Contract & Shape Verification**: Added offline API contract signature checking (`test_api_signatures.py`) and mock JSON-RPC response shape verification (`test_api_shapes.py`) using static json payloads to protect the public API from future backward-compatibility breaks.
 - **VCR**: Resolved connection pool leaks and deadlocks under VCR recording/playback by override patching default connection limits.
 
 ## 1.0.0 - 2026-05-22
