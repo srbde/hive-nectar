@@ -11,9 +11,6 @@ Practical refactors to strip legacy branches, rely on the static `nectarapi/open
 
 - Finish unifying key/token store interfaces (`nectarstorage/interfaces.py` and backends): make `add/delete/getPrivateKeyForPublicKey` signatures match the interfaces, drop dict inheritance, and share encryption/decryption helpers. Introduce a keystore protocol for wallet/transactionbuilder use.
 
-## Tests and docs
-
-- Update docs/examples to describe the single RPC path, static OpenAPI map, and shared-instance/transport lifecycle; prune any references to shipping JSON specs.
 
 ## API Refactoring
 

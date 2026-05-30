@@ -1,9 +1,8 @@
 # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/interfaces.py
-from collections.abc import MutableMapping
 from typing import Any, Iterator, Optional, Protocol
 
 
-class StoreInterface(MutableMapping):
+class StoreInterface(object):
     """The store interface is the most general store that we can have.
 
     It behaves like a dictionary but allows returning None for missing keys and
@@ -16,24 +15,9 @@ class StoreInterface(MutableMapping):
         **not** exist in the store, the library will **NOT** raise but
         return a ``None`` value. This represents the biggest difference to
         a regular ``dict`` class.
-
-    Methods that need to be implemented:
-
-      * ``def setdefault(cls, key, value)``
-      * ``def __init__(self, *args, **kwargs)``
-      * ``def __setitem__(self, key, value)``
-      * ``def __getitem__(self, key)``
-      * ``def __iter__(self)``
-      * ``def __len__(self)``
-      * ``def __contains__(self, key)``
-
-
-    .. note:: Configuration and Key classes are subclasses of this to allow
-        storing keys separate from configuration.
-
     """
 
-    defaults = {}
+    defaults: dict[str, Any] = {}
 
     def setdefault(self, key, value=None):
         """Allows to define default values on this store instance."""
@@ -80,13 +64,45 @@ class StoreInterface(MutableMapping):
             raise KeyError(key)
         self._data.pop(key)
 
+    def keys(self):
+        """Returns the keys of the store"""
+        return self._data.keys()
+
+    def values(self):
+        """Returns the values of the store"""
+        return self._data.values()
+
     def items(self):
-        """Returns all items off the store as tuples"""
+        """Returns all items of the store as tuples"""
         return self._data.items()
 
     def get(self, key, default=None):
         """Return the key if exists or a default value"""
         return self._data.get(key, self.defaults.get(key, default))
+
+    def pop(self, key, default=None):
+        """Remove a key and return its value or a default"""
+        if key in self._data:
+            val = self._data[key]
+            self.__delitem__(key)
+            return val
+        return default
+
+    def clear(self) -> None:
+        """Clear all entries from the store"""
+        self._data.clear()
+
+    def update(self, other=None, **kwargs) -> None:
+        """Update the store with keys and values from other"""
+        if other is not None:
+            if hasattr(other, "keys"):
+                for k in other:
+                    self[k] = other[k]
+            else:
+                for k, v in other:
+                    self[k] = v
+        for k, v in kwargs.items():
+            self[k] = v
 
     # Specific for this library
     def delete(self, key):
@@ -194,14 +210,13 @@ class TokenInterface(StoreInterface):
         """Returns the public token names stored in the database"""
         raise NotImplementedError
 
-    def getPrivateKeyForPublicKey(self, pub):
-        """Returns the (possibly encrypted) token that corresponds to a name
-
-        :param str pub: Public key
-
-        The encryption scheme is BIP38
-        """
+    def getTokenForName(self, name):
+        """Returns the (possibly encrypted) token that corresponds to a name"""
         raise NotImplementedError
+
+    def getPrivateKeyForPublicKey(self, pub):
+        """Legacy compatibility alias for getTokenForName."""
+        return self.getTokenForName(pub)
 
     def add(self, token, name=None):
         """Add a new token entry (correspondence has to be checked elsewhere!)

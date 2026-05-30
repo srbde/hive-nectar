@@ -4,6 +4,7 @@ from typing import Any, MutableMapping
 
 from nectar.nodelist import NodeList
 from nectarstorage import SqliteConfigurationStore, SqliteEncryptedKeyStore
+from nectarstorage.interfaces import StoreInterface
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -14,12 +15,12 @@ timeformat = "%Y%m%d-%H%M%S"
 
 
 def generate_config_store(
-    config: MutableMapping[str, Any],
+    config: StoreInterface | MutableMapping[str, Any],
     blockchain: str = "hive",
     node: Any = None,
     offline: bool = False,
     **kwargs: Any,
-) -> MutableMapping[str, Any]:
+) -> StoreInterface | MutableMapping[str, Any]:
     #: Default configuration
     """
     Populate a configuration mapping with sensible defaults for Hive-related settings and return it.
@@ -71,12 +72,12 @@ def generate_config_store(
     return config
 
 
-def get_default_config_store(*args, **kwargs) -> MutableMapping[str, Any]:
+def get_default_config_store(*args, **kwargs) -> StoreInterface | MutableMapping[str, Any]:
     config_store = SqliteConfigurationStore(*args, **kwargs)
     return generate_config_store(config_store, blockchain="hive", **kwargs)
 
 
 def get_default_key_store(
-    config: MutableMapping[str, Any], *args, **kwargs
+    config: StoreInterface | MutableMapping[str, Any], *args, **kwargs
 ) -> SqliteEncryptedKeyStore:
     return SqliteEncryptedKeyStore(config=config, **kwargs)
