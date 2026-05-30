@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "hive-nectar"
-version = "1.0.3"
+version = "1.0.4"
 description = "Hive Blockchain Python Library"
 readme = "README.md"
 keywords = ["api", "hive", "library", "rpc"]

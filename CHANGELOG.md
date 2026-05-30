@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.0.4 - 2026-05-30
+
+### Refactoring
+
+- **Phase 5: Wallet & Key Storage Deconstruction**: Deconstructed the monolithic `wallet.py` and `storage.py` into a modular package under `src/nectar/wallet/`.
+  - Moved `Wallet` class to `src/nectar/wallet/core.py` and updated its internal relative imports to absolute imports.
+  - Relocated configuration defaults and SQLite key store defaults to `src/nectar/wallet/storage.py`.
+  - Replaced original files with clean facades `src/nectar/wallet.py` and `src/nectar/storage.py` pointing to the new modules, ensuring 100% backward compatibility.
+
+## 1.0.3 - 2026-05-29
+
+### Refactoring
+
+- **Phase 2: Split the CLI**: Deconstructed the monolithic `src/nectar/cli.py` into a modular Click package under `src/nectar/cli/`.
+  - Created modular sub-command modules: `account.py`, `market.py`, `post.py`, `wallet.py`, and `utils.py`.
+  - Replaced `src/nectar/cli.py` with a clean facade that forwards to `nectar.cli`.
+- **Phase 4: Core Domain Deconstruction**: Split the monolithic `Account`, `Comment`, and `Blockchain` classes into focused, modular packages:
+  - `src/nectar/account/`: Separated into `models.py`, `calculator.py`, `queries.py`, and `operations.py`.
+  - `src/nectar/comment/`: Separated into `models.py` and `operations.py`.
+  - `src/nectar/blockchain/`: Separated into `client.py` and `concurrency.py`.
+  - Replaced original files with backward-compatible facades exporting the original class signatures.
+- **Bug Fix**: Resolved relative import issues (`from .comment`, `from .discussions`, `from .memo`) introduced during core deconstruction.
+
 ## 1.0.2 - 2026-05-29
 
 ### Features
