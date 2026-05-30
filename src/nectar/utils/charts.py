@@ -1,4 +1,3 @@
-import sys
 from math import ceil, floor
 from typing import List, Optional, Union
 
@@ -29,7 +28,7 @@ class AsciiChart:
         self.offset = offset
         self.placeholder = placeholder
         self.clear_data()
-        if charset == "ascii" or sys.version_info[0] < 3:
+        if charset == "ascii":
             self.char_set = {
                 "first_axis_elem": "|",
                 "axis_elem": "|",
