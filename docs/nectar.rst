@@ -1,22 +1,39 @@
 nectar package
 ==============
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   nectar.account
+   nectar.blockchain
+   nectar.blockchaininstance
+   nectar.cli
+   nectar.comment
+   nectar.community
+   nectar.discussions
+   nectar.market
+   nectar.memo
+   nectar.rc
+   nectar.utils
+   nectar.wallet
+   nectar.witness
+
 Submodules
 ----------
 
 .. toctree::
    :maxdepth: 4
 
-   nectar.account
    nectar.amount
    nectar.asciichart
    nectar.asset
    nectar.block
-   nectar.blockchain
    nectar.blockchaininstance
    nectar.blockchainobject
    nectar.cli
-   nectar.comment
    nectar.community
    nectar.constants
    nectar.discussions

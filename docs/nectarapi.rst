@@ -12,7 +12,9 @@ Submodules
    nectarapi.node
    nectarapi.noderpc
    nectarapi.openapi
+   nectarapi.pool
    nectarapi.rpcutils
+   nectarapi.transports
    nectarapi.version
 
 Module contents
