@@ -19,6 +19,33 @@ Refactoring
     ``src/nectar/storage.py`` pointing to the new modules, ensuring 100%
     backward compatibility.
 
+- **Phase 7: Feature-Specific Services Deconstruction**:
+  Modularized domain services:
+
+  - Extracted ``Market`` logic into ``src/nectar/market/``.
+  - Extracted ``Community`` logic into ``src/nectar/community/``.
+  - Extracted ``Discussions`` query definitions and streams into ``src/nectar/discussions/``.
+  - Extracted ``RC`` (Resource Credit) cost calculations into ``src/nectar/rc/``.
+  - Extracted encrypted/decrypted ``Memo`` and custom JSON ``Message`` handling into ``src/nectar/memo/``.
+  - Replaced original root files with backward-compatible facades.
+
+- **Monolith Deconstruction (Priority 1 & 2)**:
+  Modularized key classes:
+
+  - Extracted ``BlockChainInstance`` into ``src/nectar/blockchaininstance/``.
+  - Extracted ``Witness`` and query list classes into ``src/nectar/witness/``.
+  - Replaced original root files with backward-compatible facades.
+
+- **Phase 8: Utility & Integration Layer**:
+  Modularized miscellaneous helpers:
+
+  - Extracted formatting, asciicharts, imageuploader, snapshot, and HAF logic into ``src/nectar/utils/``.
+  - Configured lazy loading/selective exports to prevent circular imports during package initialization.
+
+- **NodeList & Caching Fixes**:
+  Removed unstable disk caching (``/tmp/nectar_nodes_cache.json``) to resolve FileNotFoundError races. Converted ``update_nodes()`` to run synchronously to fix the issue where CLI updates retrieved only static fallback nodes.
+
+
 1.0.3 - 2026-05-29
 ------------------
 
