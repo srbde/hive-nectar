@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict, List, Union
 
 from . import exceptions
-from .graphenerpc import GrapheneRPC
+from .graphenerpc import AsyncGrapheneRPC, GrapheneRPC
 
 log = logging.getLogger(__name__)
 
@@ -77,3 +77,44 @@ class NodeRPC(GrapheneRPC):
         """
         if isinstance(name, str):
             return self.get_accounts([name], **kwargs)
+
+
+class AsyncNodeRPC(AsyncGrapheneRPC):
+    """This class allows to call API methods exposed by the witness node via
+    websockets / rpc-json asynchronously.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.next_node_on_empty_reply = False
+
+    def set_next_node_on_empty_reply(self, next_node_on_empty_reply: bool = True) -> None:
+        """Switch to next node on empty reply for the next rpc call"""
+        self.next_node_on_empty_reply = next_node_on_empty_reply
+
+    async def rpcexec_async(self, payload: Union[Dict[str, Any], List[Dict[str, Any]]]) -> Any:
+        """
+        Execute an RPC call with node-aware retry and Hive-specific error handling asynchronously.
+        """
+        if self.url is None:
+            raise exceptions.RPCConnection("RPC is not connected!")
+        reply = await super().rpcexec_async(payload)
+        if self.next_node_on_empty_reply and not bool(reply) and self.nodes.working_nodes_count > 1:
+            self.next_node_on_empty_reply = False
+            self._retry_on_next_node("Empty Reply")
+            return await super().rpcexec_async(payload)
+        self.next_node_on_empty_reply = False
+        return reply
+
+    def _retry_on_next_node(self, error_msg: str) -> None:
+        self.nodes.increase_error_cnt()
+        self.nodes.sleep_and_check_retries(error_msg, sleep=False, call_retry=False)
+        self.next()
+
+    async def get_account(self, name: str, **kwargs: Any) -> Any:
+        """Get full account details from account name asynchronously
+
+        :param str name: Account name
+        """
+        if isinstance(name, str):
+            return await self.get_accounts([name], **kwargs)

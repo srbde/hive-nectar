@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.5 - 2026-05-30
+
+### Features
+
+- **Async RPC Client (`nectarapi`)**:
+  - Implemented the `AsyncGrapheneRPC` and `AsyncNodeRPC` classes inside the `nectarapi` package, permitting fully asynchronous, non-blocking JSON-RPC requests to Hive nodes.
+  - Retained complete backwards-compatibility, ensuring synchronous clients and existing scripts function exactly as they did before.
+  - Standardized `__getattr__` dynamic method resolution to return coroutines for all async RPC operations.
+  - Implemented lazy, process-wide connection pooling for async clients with full proxy and basic-auth support.
+- **Examples**:
+  - Added [async_rpc_example.py](/examples/async_rpc_example.py) showing the asynchronous clients in action.
+
 ## 1.0.4 - 2026-05-30
 
 ### Refactoring
@@ -62,7 +74,6 @@
 - **VCR**: Resolved connection pool leaks and deadlocks under VCR recording/playback by override patching default connection limits.
 
 ## 1.0.0 - 2026-05-22
-
 
 ### Major Changes
 
