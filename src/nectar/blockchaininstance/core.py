@@ -136,7 +136,7 @@ class BlockChainInstance:
         **kwargs,
     ) -> None:
         """
-        Initialize the BlockChainInstance, set up connection (unless offline), load configuration, initialize caches and transaction buffers, and create the Wallet and optional HiveSigner/ledger signing support.
+        Initialize the BlockChainInstance, set up connection (unless offline), load configuration, initialize caches and transaction buffers, and create the Wallet and optional ledger signing support.
 
         Parameters:
             node (str): RPC node URL to connect to (optional; ignored if offline).
