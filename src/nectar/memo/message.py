@@ -343,11 +343,7 @@ class Message(MessageV1, MessageV2):
             except self.valid_exceptions as e:
                 raise e
             except Exception as e:
-                log.warning(
-                    "{}: Couldn't init: {}: {}".format(
-                        _format.__name__, e.__class__.__name__, str(e)
-                    )
-                )
+                log.warning(f"{_format.__name__}: Couldn't init: {e.__class__.__name__}: {e}")
 
     def verify(self, **kwargs: Any) -> bool:
         for _format in self.supported_formats:
@@ -356,11 +352,7 @@ class Message(MessageV1, MessageV2):
             except self.valid_exceptions as e:
                 raise e
             except Exception as e:
-                log.warning(
-                    "{}: Couldn't verify: {}: {}".format(
-                        _format.__name__, e.__class__.__name__, str(e)
-                    )
-                )
+                log.warning(f"{_format.__name__}: Couldn't verify: {e.__class__.__name__}: {e}")
         raise ValueError("No Decoder accepted the message")
 
     def sign(self, account: str | Account | None = None, **kwargs: Any) -> Any:
@@ -370,9 +362,5 @@ class Message(MessageV1, MessageV2):
             except self.valid_exceptions as e:
                 raise e
             except Exception as e:
-                log.warning(
-                    "{}: Couldn't sign: {}: {}".format(
-                        _format.__name__, e.__class__.__name__, str(e)
-                    )
-                )
+                log.warning(f"{_format.__name__}: Couldn't sign: {e.__class__.__name__}: {e}")
         raise ValueError("No Decoder accepted the message")

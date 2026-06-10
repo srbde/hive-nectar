@@ -425,7 +425,7 @@ def uploadimage(image, account, image_name):
     if image_name is None:
         print("![](%s)" % tx["url"])
     else:
-        print("![{}]({})".format(image_name, tx["url"]))
+        print(f"![{image_name}]({tx['url']})")
 
 
 @cli.command()
@@ -595,9 +595,7 @@ def createpost(
                     continue
                 community = comm_cand[int(index) - 1]
             ret = input(
-                "Selected community: {} - {} [yes/no]? ".format(
-                    community["name"], community["title"]
-                )
+                f"Selected community: {community['name']} - {community['title']} [yes/no]? "
             )
             if ret in ["y", "yes"]:
                 community_found = True

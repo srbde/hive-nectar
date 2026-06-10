@@ -1262,11 +1262,7 @@ def witnessfeed(witness, wif, base, quote, support_peg):
         last_published_price = Price(median, blockchain_instance=hv)
 
     hive_usd = None
-    print(
-        "Old price {:.3f} (base: {}, quote {})".format(
-            float(last_published_price), old_base, old_quote
-        )
-    )
+    print(f"Old price {float(last_published_price):.3f} (base: {old_base}, quote {old_quote})")
     if quote is None and not support_peg:
         quote = Amount("1.000 %s" % hv.token_symbol, blockchain_instance=hv)
     elif quote is None:

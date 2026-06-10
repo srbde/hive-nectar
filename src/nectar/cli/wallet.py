@@ -125,7 +125,7 @@ def parsewif(unsafe_import_key):
                 account = hv.wallet.getAccountFromPublicKey(str(pubkey))
                 account = Account(account, blockchain_instance=hv)
                 key_type = hv.wallet.getKeyType(account, str(pubkey))
-                print("Account: {} - {}".format(account["name"], key_type))
+                print(f"Account: {account['name']} - {key_type}")
             except Exception as e:
                 print(str(e))
     else:
@@ -139,7 +139,7 @@ def parsewif(unsafe_import_key):
                 account = hv.wallet.getAccountFromPublicKey(str(pubkey))
                 account = Account(account, blockchain_instance=hv)
                 key_type = hv.wallet.getKeyType(account, str(pubkey))
-                print("Account: {} - {}".format(account["name"], key_type))
+                print(f"Account: {account['name']} - {key_type}")
             except Exception as e:
                 print(str(e))
                 continue
