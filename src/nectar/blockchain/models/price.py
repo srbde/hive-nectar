@@ -1,6 +1,6 @@
 from decimal import Decimal
 from fractions import Fraction
-from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from nectar.exceptions import InvalidAssetException
 from nectar.instance import shared_blockchain_instance
@@ -73,11 +73,11 @@ class Price(dict):
 
     def __init__(
         self,
-        price: Optional[Union[str, Dict[str, Any], "Price"]] = None,
-        base: Optional[Union[str, Amount, Asset]] = None,
-        quote: Optional[Union[str, Amount, Asset]] = None,
-        base_asset: Optional[str] = None,  # to identify sell/buy
-        blockchain_instance: Optional[Any] = None,
+        price: Union[str, dict[str, Any], "Price"] | None = None,
+        base: str | Amount | Asset | None = None,
+        quote: str | Amount | Asset | None = None,
+        base_asset: str | None = None,  # to identify sell/buy
+        blockchain_instance: Any | None = None,
     ) -> None:
         """
         Initialize a Price object representing a ratio between a base and quote asset.
@@ -219,17 +219,17 @@ class Price(dict):
         )
 
     def _safedivide(
-        self, a: Union[int, float, Decimal], b: Union[int, float, Decimal]
-    ) -> Union[int, float, Decimal]:
+        self, a: int | float | Decimal, b: int | float | Decimal
+    ) -> int | float | Decimal:
         if b != 0.0:
             return float(a) / float(b)
         else:
             return float("inf")
 
-    def symbols(self) -> Tuple[str, str]:
+    def symbols(self) -> tuple[str, str]:
         return self["base"]["symbol"], self["quote"]["symbol"]
 
-    def as_base(self, base: Union[str, Asset]) -> "Price":
+    def as_base(self, base: str | Asset) -> "Price":
         """
         Return a copy of this Price expressed with the given asset as the base.
 
@@ -250,7 +250,7 @@ class Price(dict):
         else:
             raise InvalidAssetException
 
-    def as_quote(self, quote: Union[str, Asset]) -> "Price":
+    def as_quote(self, quote: str | Asset) -> "Price":
         """
         Return a Price instance expressed with the given quote asset symbol.
 
@@ -293,7 +293,7 @@ class Price(dict):
         self["base"] = tmp
         return self
 
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         return {"base": self["base"].json(), "quote": self["quote"].json()}
 
     def __repr__(self) -> str:
@@ -509,9 +509,9 @@ class Order(Price):
 
     def __init__(
         self,
-        base: Union[Dict[str, Any], Amount],
-        quote: Optional[Amount] = None,
-        blockchain_instance: Optional[Any] = None,
+        base: dict[str, Any] | Amount,
+        quote: Amount | None = None,
+        blockchain_instance: Any | None = None,
         **kwargs: Any,
     ) -> None:
         self.blockchain = blockchain_instance or shared_blockchain_instance()
@@ -562,7 +562,7 @@ class FilledOrder(Price):
     """
 
     def __init__(
-        self, order: Dict[str, Any], blockchain_instance: Optional[Any] = None, **kwargs: Any
+        self, order: dict[str, Any], blockchain_instance: Any | None = None, **kwargs: Any
     ) -> None:
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if isinstance(order, dict) and "current_pays" in order and "open_pays" in order:
@@ -581,7 +581,7 @@ class FilledOrder(Price):
         else:
             raise ValueError("Couldn't parse 'Price'.")
 
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         return {
             "date": formatTimeString(self["date"]),
             "current_pays": self["base"].json(),

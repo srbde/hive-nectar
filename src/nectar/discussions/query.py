@@ -1,6 +1,3 @@
-from typing import List, Optional
-
-
 class Query(dict):
     """Query to be used for all discussion queries
 
@@ -31,18 +28,18 @@ class Query(dict):
         limit: int = 0,
         tag: str = "",
         truncate_body: int = 0,
-        filter_tags: Optional[List[str]] = None,
-        select_authors: Optional[List[str]] = None,
-        select_tags: Optional[List[str]] = None,
-        start_author: Optional[str] = None,
-        start_permlink: Optional[str] = None,
-        start_tag: Optional[str] = None,
-        parent_author: Optional[str] = None,
-        parent_permlink: Optional[str] = None,
-        start_parent_author: Optional[str] = None,
-        before_date: Optional[str] = None,
-        author: Optional[str] = None,
-        observer: Optional[str] = None,
+        filter_tags: list[str] | None = None,
+        select_authors: list[str] | None = None,
+        select_tags: list[str] | None = None,
+        start_author: str | None = None,
+        start_permlink: str | None = None,
+        start_tag: str | None = None,
+        parent_author: str | None = None,
+        parent_permlink: str | None = None,
+        start_parent_author: str | None = None,
+        before_date: str | None = None,
+        author: str | None = None,
+        observer: str | None = None,
     ) -> None:
         """
         Initialize a Query mapping for discussion fetches.

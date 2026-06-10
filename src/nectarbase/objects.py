@@ -2,7 +2,7 @@ import decimal
 import json
 import struct
 from collections import OrderedDict
-from typing import Any, Dict, Union
+from typing import Any
 
 from nectargraphenebase.account import PublicKey
 from nectargraphenebase.chains import known_chains
@@ -27,17 +27,15 @@ from .operationids import operations
 default_prefix = "STM"
 
 
-def value_to_decimal(value: Union[str, float, int], decimal_places: int) -> decimal.Decimal:
+def value_to_decimal(value: str | float | int, decimal_places: int) -> decimal.Decimal:
     decimal.getcontext().rounding = decimal.ROUND_DOWN  # define rounding method
-    return decimal.Decimal(str(float(value))).quantize(
-        decimal.Decimal("1e-{}".format(decimal_places))
-    )
+    return decimal.Decimal(str(float(value))).quantize(decimal.Decimal(f"1e-{decimal_places}"))
 
 
 class Amount:
     def __init__(
         self,
-        d: Union[str, Any],
+        d: str | Any,
         prefix: str = default_prefix,
         json_str: bool = False,
         **kwargs,
@@ -180,7 +178,7 @@ class Operation(GPHOperation):
         class_ = getattr(module, name)
         return class_
 
-    def operations(self) -> Dict[str, int]:
+    def operations(self) -> dict[str, int]:
         return operations
 
     def getOperationNameForId(self, i: int) -> str:
@@ -190,7 +188,7 @@ class Operation(GPHOperation):
                 return key
         return "Unknown Operation ID %d" % i
 
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         return json.loads(str(self))
         # return json.loads(str(json.dumps([self.name, self.op.toJson()])))
 

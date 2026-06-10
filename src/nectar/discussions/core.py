@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import Any, Optional
+from typing import Any
 
 from nectar.comment import Comment
 from nectar.instance import shared_blockchain_instance
@@ -16,7 +16,7 @@ class Discussions:
     """
 
     def __init__(
-        self, lazy: bool = False, blockchain_instance: Optional[Any] = None, **kwargs: Any
+        self, lazy: bool = False, blockchain_instance: Any | None = None, **kwargs: Any
     ) -> None:
         """
         Initialize the Discussions orchestrator.

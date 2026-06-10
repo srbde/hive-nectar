@@ -1,6 +1,6 @@
 import io
 from binascii import hexlify
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 import httpx2
 from httpx2 import ConnectError, HTTPStatusError, RequestError, TimeoutException
@@ -16,7 +16,7 @@ class ImageUploader:
         self,
         base_url: str = "https://images.hive.blog",
         challenge: str = "ImageSigningChallenge",
-        blockchain_instance: Optional[Any] = None,
+        blockchain_instance: Any | None = None,
     ) -> None:
         """
         Initialize the ImageUploader.
@@ -34,10 +34,10 @@ class ImageUploader:
 
     def upload(
         self,
-        image: Union[str, bytes, io.BytesIO],
-        account: Union[str, Account],
-        image_name: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        image: str | bytes | io.BytesIO,
+        account: str | Account,
+        image_name: str | None = None,
+    ) -> dict[str, Any]:
         """
         Upload an image to the configured image service, signing the upload with the account's posting key.
 

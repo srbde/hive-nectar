@@ -60,7 +60,7 @@ class Testcases(unittest.TestCase):
         asset = Asset("HBD", blockchain_instance=hv)
         symbol = asset["symbol"]
         precision = asset["precision"]
-        amount = Amount("1 {}".format(symbol), blockchain_instance=hv)
+        amount = Amount(f"1 {symbol}", blockchain_instance=hv)
         self.dotest(amount, 1, symbol)
 
         # Amount init
@@ -152,7 +152,7 @@ class Testcases(unittest.TestCase):
         )
 
     def test_string(self):
-        self.assertEqual(str(Amount("10000", self.symbol)), "10000.000 {}".format(self.symbol))
+        self.assertEqual(str(Amount("10000", self.symbol)), f"10000.000 {self.symbol}")
 
     def test_int(self):
         self.assertEqual(int(Amount("0.9999", self.symbol)), 999)

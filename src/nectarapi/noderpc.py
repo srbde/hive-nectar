@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Union
+from typing import Any
 
 from . import exceptions
 from .graphenerpc import AsyncGrapheneRPC, GrapheneRPC
@@ -40,7 +40,7 @@ class NodeRPC(GrapheneRPC):
         """Switch to next node on empty reply for the next rpc call"""
         self.next_node_on_empty_reply = next_node_on_empty_reply
 
-    def rpcexec(self, payload: Union[Dict[str, Any], List[Dict[str, Any]]]) -> Any:
+    def rpcexec(self, payload: dict[str, Any] | list[dict[str, Any]]) -> Any:
         """
         Execute an RPC call with node-aware retry and Hive-specific error handling.
 
@@ -92,7 +92,7 @@ class AsyncNodeRPC(AsyncGrapheneRPC):
         """Switch to next node on empty reply for the next rpc call"""
         self.next_node_on_empty_reply = next_node_on_empty_reply
 
-    async def rpcexec_async(self, payload: Union[Dict[str, Any], List[Dict[str, Any]]]) -> Any:
+    async def rpcexec_async(self, payload: dict[str, Any] | list[dict[str, Any]]) -> Any:
         """
         Execute an RPC call with node-aware retry and Hive-specific error handling asynchronously.
         """

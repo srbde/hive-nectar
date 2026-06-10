@@ -1,5 +1,4 @@
 from math import ceil, floor
-from typing import List, Optional, Union
 
 # Basic idea from https://github.com/kroitor/asciichart
 # ╱ ╲ ╳ ─ └┲┲┲─
@@ -17,8 +16,8 @@ class AsciiChart:
 
     def __init__(
         self,
-        height: Optional[int] = None,
-        width: Optional[int] = None,
+        height: int | None = None,
+        width: int | None = None,
         offset: int = 3,
         placeholder: str = "{:8.2f} ",
         charset: str = "utf8",
@@ -67,9 +66,9 @@ class AsciiChart:
 
     def set_parameter(
         self,
-        height: Optional[int] = None,
-        offset: Optional[int] = None,
-        placeholder: Optional[str] = None,
+        height: int | None = None,
+        offset: int | None = None,
+        placeholder: str | None = None,
     ) -> None:
         """Can be used to change parameter"""
         if height is not None:
@@ -80,7 +79,7 @@ class AsciiChart:
             self.placeholder = placeholder
         self._calc_plot_parameter()
 
-    def adapt_on_series(self, series: List[Union[int, float]]) -> None:
+    def adapt_on_series(self, series: list[int | float]) -> None:
         """Calculates the minimum, maximum and length from the given list
 
         :param list series: time series to plot
@@ -104,9 +103,9 @@ class AsciiChart:
 
     def _calc_plot_parameter(
         self,
-        minimum: Optional[Union[int, float]] = None,
-        maximum: Optional[Union[int, float]] = None,
-        n: Optional[int] = None,
+        minimum: int | float | None = None,
+        maximum: int | float | None = None,
+        n: int | None = None,
     ) -> None:
         """Calculates parameter from minimum, maximum and length"""
         if minimum is not None:
@@ -137,7 +136,7 @@ class AsciiChart:
         else:
             self.skip = 1
 
-    def plot(self, series: List[Union[int, float]], return_str: bool = False) -> Optional[str]:
+    def plot(self, series: list[int | float], return_str: bool = False) -> str | None:
         """All in one function for plotting
 
         .. testcode::
@@ -159,9 +158,9 @@ class AsciiChart:
 
     def new_chart(
         self,
-        minimum: Optional[Union[int, float]] = None,
-        maximum: Optional[Union[int, float]] = None,
-        n: Optional[int] = None,
+        minimum: int | float | None = None,
+        maximum: int | float | None = None,
+        n: int | None = None,
     ) -> None:
         """Clears the canvas
 
@@ -224,7 +223,7 @@ class AsciiChart:
             if label:
                 self._set_y_axis_elem(y, label)
 
-    def _set_y_axis_elem(self, y: Union[int, float], label: str) -> None:
+    def _set_y_axis_elem(self, y: int | float, label: str) -> None:
         intmin2 = int(self.min2)
         y_int = int(y)
         self.canvas[y_int - intmin2][max(self.offset - len(label), 0)] = label
@@ -233,11 +232,11 @@ class AsciiChart:
         else:
             self.canvas[y_int - intmin2][self.offset - 1] = self.char_set["axis_elem"]
 
-    def _map_y(self, y_float: Union[int, float]) -> int:
+    def _map_y(self, y_float: int | float) -> int:
         intmin2 = int(self.min2)
         return int(round(y_float * self.ratio) - intmin2)
 
-    def add_curve(self, series: List[Union[int, float]]) -> None:
+    def add_curve(self, series: list[int | float]) -> None:
         """Add a curve to the canvas
 
         :param list series: List width float data points
@@ -271,7 +270,7 @@ class AsciiChart:
                 end = max(y0, y1)
                 self._draw_v_line(start, end, x, line=self.char_set["curve_vl"])
 
-    def _draw_diag(self, y0: Union[int, float], y1: Union[int, float], x: int) -> None:
+    def _draw_diag(self, y0: int | float, y1: int | float, x: int) -> None:
         """Plot diagonal element"""
         if y0 > y1:
             c1 = self.char_set["curve_ar"]
@@ -282,7 +281,7 @@ class AsciiChart:
         self._set_elem(int(y1), x, c1)
         self._set_elem(int(y0), x, c0)
 
-    def _draw_h_line(self, y: Union[int, float], x_start: int, x_end: int, line: str = "-") -> None:
+    def _draw_h_line(self, y: int | float, x_start: int, x_end: int, line: str = "-") -> None:
         """Plot horizontal line"""
         for x in range(x_start, x_end):
             self._set_elem(int(y), x, line)

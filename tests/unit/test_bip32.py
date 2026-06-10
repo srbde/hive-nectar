@@ -1,6 +1,6 @@
 import binascii
 from binascii import unhexlify
-from typing import Optional, cast
+from typing import cast
 
 from nectargraphenebase.account import Mnemonic
 from nectargraphenebase.bip32 import BIP32_HARDEN, BIP32Key, parse_path
@@ -8,7 +8,7 @@ from nectargraphenebase.bip32 import BIP32_HARDEN, BIP32Key, parse_path
 words = "news clever spot drama infant detail sword cover color throw foot primary when slender rhythm clog autumn ecology enough bronze math you modify excuse"
 
 
-def _require_child(key: Optional[BIP32Key]) -> BIP32Key:
+def _require_child(key: BIP32Key | None) -> BIP32Key:
     assert key is not None
     return cast(BIP32Key, key)
 

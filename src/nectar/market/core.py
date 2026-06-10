@@ -1,7 +1,7 @@
 import logging
 import random
 from datetime import date, datetime, time, timedelta, timezone
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any
 
 import httpx2
 
@@ -49,9 +49,9 @@ class Market(dict):
 
     def __init__(
         self,
-        base: Optional[Union[str, Asset]] = None,
-        quote: Optional[Union[str, Asset]] = None,
-        blockchain_instance: Optional[Any] = None,
+        base: str | Asset | None = None,
+        quote: str | Asset | None = None,
+        blockchain_instance: Any | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -121,7 +121,7 @@ class Market(dict):
             )
         return False
 
-    def ticker(self, raw_data: bool = False) -> Union[Dict[str, Any], Any]:
+    def ticker(self, raw_data: bool = False) -> dict[str, Any] | Any:
         """
         Return the market ticker for this Market (HIVE:HBD).
 
@@ -172,7 +172,7 @@ class Market(dict):
 
         return data
 
-    def volume24h(self, raw_data: bool = False) -> Optional[Union[Dict[str, Amount], Any]]:
+    def volume24h(self, raw_data: bool = False) -> dict[str, Amount] | Any | None:
         """
         Return 24-hour trading volume for this market.
 
@@ -198,7 +198,7 @@ class Market(dict):
                 ),
             }
 
-    def orderbook(self, limit: int = 25, raw_data: bool = False) -> Union[Dict[str, Any], Any]:
+    def orderbook(self, limit: int = 25, raw_data: bool = False) -> dict[str, Any] | Any:
         """Returns the order book for the HBD/HIVE market.
 
         :param int limit: Limit the amount of orders (default: 25)
@@ -288,7 +288,7 @@ class Market(dict):
 
     def recent_trades(
         self, limit: int = 25, raw_data: bool = False
-    ) -> Union[List[FilledOrder], List[Dict[str, Any]]]:
+    ) -> list[FilledOrder] | list[dict[str, Any]]:
         """
         Return recent trades for this market.
 
@@ -310,11 +310,11 @@ class Market(dict):
 
     def trade_history(
         self,
-        start: Optional[Union[datetime, date, time]] = None,
-        stop: Optional[Union[datetime, date, time]] = None,
+        start: datetime | date | time | None = None,
+        stop: datetime | date | time | None = None,
         limit: int = 25,
         raw_data: bool = False,
-    ) -> Union[List[FilledOrder], List[Dict[str, Any]]]:
+    ) -> list[FilledOrder] | list[dict[str, Any]]:
         """Returns the trade history for the internal market
 
         :param datetime start: Start date
@@ -340,10 +340,10 @@ class Market(dict):
     def trades(
         self,
         limit: int = 100,
-        start: Optional[Union[datetime, date, time]] = None,
-        stop: Optional[Union[datetime, date, time]] = None,
+        start: datetime | date | time | None = None,
+        stop: datetime | date | time | None = None,
         raw_data: bool = False,
-    ) -> Union[List[FilledOrder], List[Dict[str, Any]]]:
+    ) -> list[FilledOrder] | list[dict[str, Any]]:
         """Returns your trade history for a given market.
 
         :param int limit: Limit the amount of orders (default: 100)
@@ -380,18 +380,18 @@ class Market(dict):
         filled_order = list([FilledOrder(x, blockchain_instance=self.blockchain) for x in orders])
         return filled_order
 
-    def market_history_buckets(self) -> List[int]:
+    def market_history_buckets(self) -> list[int]:
         self.blockchain.rpc.set_next_node_on_empty_reply(True)
         ret = self.blockchain.rpc.get_market_history_buckets()
         return ret["bucket_sizes"]
 
     def market_history(
         self,
-        bucket_seconds: Union[int, float] = 300,
+        bucket_seconds: int | float = 300,
         start_age: int = 3600,
         end_age: int = 0,
         raw_data: bool = False,
-    ) -> Union[List[Dict[str, Any]], Any]:
+    ) -> list[dict[str, Any]] | Any:
         """
         Return market history buckets for a time window.
 
@@ -437,8 +437,8 @@ class Market(dict):
         return new_history
 
     def accountopenorders(
-        self, account: Optional[Union[str, Account]] = None, raw_data: bool = False
-    ) -> Union[List[Order], List[Dict[str, Any]], None]:
+        self, account: str | Account | None = None, raw_data: bool = False
+    ) -> list[Order] | list[dict[str, Any]] | None:
         """Returns open Orders
 
         :param Account account: Account name or instance of Account to show orders for in this market
@@ -474,14 +474,14 @@ class Market(dict):
 
     def buy(
         self,
-        price: Union[str, Price, float],
-        amount: Union[str, Amount],
-        expiration: Optional[int] = None,
+        price: str | Price | float,
+        amount: str | Amount,
+        expiration: int | None = None,
         killfill: bool = False,
-        account: Optional[Union[str, Account]] = None,
-        orderid: Optional[int] = None,
+        account: str | Account | None = None,
+        orderid: int | None = None,
         returnOrderId: bool = False,
-    ) -> Union[Dict[str, Any], str]:
+    ) -> dict[str, Any] | str:
         """
         Place a buy order (limit order) on this market.
 
@@ -521,9 +521,7 @@ class Market(dict):
         if isinstance(amount, Amount):
             amount = Amount(amount, blockchain_instance=self.blockchain)
             if not amount["asset"]["symbol"] == self["quote"]["symbol"]:
-                raise AssertionError(
-                    "Price: {} does not match amount: {}".format(str(price), str(amount))
-                )
+                raise AssertionError(f"Price: {str(price)} does not match amount: {str(amount)}")
         elif isinstance(amount, str):
             amount = Amount(amount, blockchain_instance=self.blockchain)
         else:
@@ -566,14 +564,14 @@ class Market(dict):
 
     def sell(
         self,
-        price: Union[str, Price, float],
-        amount: Union[str, Amount],
-        expiration: Optional[int] = None,
+        price: str | Price | float,
+        amount: str | Amount,
+        expiration: int | None = None,
         killfill: bool = False,
-        account: Optional[Union[str, Account]] = None,
-        orderid: Optional[int] = None,
+        account: str | Account | None = None,
+        orderid: int | None = None,
         returnOrderId: bool = False,
-    ) -> Union[Dict[str, Any], str]:
+    ) -> dict[str, Any] | str:
         """
         Place a limit sell order on this market, selling the market's quote asset for its base asset.
 
@@ -609,9 +607,7 @@ class Market(dict):
         if isinstance(amount, Amount):
             amount = Amount(amount, blockchain_instance=self.blockchain)
             if not amount["asset"]["symbol"] == self["quote"]["symbol"]:
-                raise AssertionError(
-                    "Price: {} does not match amount: {}".format(str(price), str(amount))
-                )
+                raise AssertionError(f"Price: {str(price)} does not match amount: {str(amount)}")
         elif isinstance(amount, str):
             amount = Amount(amount, blockchain_instance=self.blockchain)
         else:
@@ -653,10 +649,10 @@ class Market(dict):
 
     def cancel(
         self,
-        orderNumbers: Union[int, List[int], Set[int], Tuple[int, ...]],
-        account: Optional[Union[str, Account]] = None,
+        orderNumbers: int | list[int] | set[int] | tuple[int, ...],
+        account: str | Account | None = None,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Cancels an order you have placed in a given market. Requires
         only the "orderNumbers".
 
@@ -683,9 +679,7 @@ class Market(dict):
         return self.blockchain.finalizeOp(op, account["name"], "active", **kwargs)
 
     @staticmethod
-    def _weighted_average(
-        values: List[Union[int, float]], weights: List[Union[int, float]]
-    ) -> float:
+    def _weighted_average(values: list[int | float], weights: list[int | float]) -> float:
         """Calculates a weighted average"""
         if not (len(values) == len(weights) and len(weights) > 0):
             raise AssertionError("Length of both array must be the same and greater than zero!")

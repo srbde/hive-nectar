@@ -4,7 +4,7 @@ import json
 import logging
 import math
 from datetime import date, datetime, timedelta, timezone
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from nectar.account import Account
 from nectar.amount import Amount
@@ -33,12 +33,12 @@ class CommentModelBase(BlockchainObject):
 
     def __init__(
         self,
-        authorperm: Union[str, Dict[str, Any]],
+        authorperm: str | dict[str, Any],
         api: str = "bridge",
         observer: str = "",
         full: bool = True,
         lazy: bool = False,
-        blockchain_instance: Optional[Any] = None,
+        blockchain_instance: Any | None = None,
     ) -> None:
         """
         Create a Comment object representing a Hive post or comment.
@@ -78,7 +78,7 @@ class CommentModelBase(BlockchainObject):
             blockchain_instance=self.blockchain,
         )
 
-    def _parse_json_data(self, comment: Dict[str, Any]) -> Dict[str, Any]:
+    def _parse_json_data(self, comment: dict[str, Any]) -> dict[str, Any]:
         """
         Normalize and convert raw comment JSON fields into Python-native types.
 
@@ -217,7 +217,7 @@ class CommentModelBase(BlockchainObject):
             blockchain_instance=self.blockchain,
         )
 
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         """
         Return a JSON-serializable dict representation of the Comment.
 
@@ -293,7 +293,7 @@ class CommentModelBase(BlockchainObject):
         return json.loads(str(json.dumps(output)))
 
     def to_zero(
-        self, account: Union[str, Account], partial: float = 100.0, nobroadcast: bool = False
+        self, account: str | Account, partial: float = 100.0, nobroadcast: bool = False
     ) -> float:
         """
         Compute the UI downvote percent needed for `account` to reduce this post's
@@ -366,7 +366,7 @@ class CommentModelBase(BlockchainObject):
 
     def to_token_value(
         self,
-        account: Union[str, Account],
+        account: str | Account,
         hbd: bool = False,
         partial: float = 100.0,
         nobroadcast: bool = False,

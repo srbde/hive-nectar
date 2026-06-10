@@ -12,7 +12,7 @@ from nectarapi.graphenerpc import GrapheneRPC
 # Helper to load fixtures
 def load_fixture(name):
     path = os.path.join(os.path.dirname(__file__), "data", "rpc_responses", f"{name}.json")
-    with open(path, "r") as f:
+    with open(path) as f:
         data = json.load(f)
     return data["result"]
 

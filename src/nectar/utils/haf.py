@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx2
 
@@ -33,7 +33,7 @@ class HAF:
     DEFAULT_APIS = ["https://api.hive.blog", "https://api.syncad.com"]
 
     def __init__(
-        self, api: Optional[str] = None, blockchain_instance=None, timeout: Optional[float] = None
+        self, api: str | None = None, blockchain_instance=None, timeout: float | None = None
     ):
         """
         Initialize the HAF client.
@@ -97,7 +97,7 @@ class HAF:
             log.error(f"Invalid response from {url}: {e}")
             raise ValueError(f"Invalid response from API: {e}")
 
-    def reputation(self, account: str) -> Optional[Dict[str, Any]]:
+    def reputation(self, account: str) -> dict[str, Any] | None:
         """
         Get reputation information for a Hive account.
 
@@ -173,7 +173,7 @@ class HAF:
         """
         return self.api
 
-    def get_account_balances(self, account: str) -> Optional[Dict[str, Any]]:
+    def get_account_balances(self, account: str) -> dict[str, Any] | None:
         """
         Get account balances from the balance API.
 
@@ -208,7 +208,7 @@ class HAF:
             log.error(f"Unexpected error retrieving balances for {account}: {e}")
             return None
 
-    def get_account_delegations(self, account: str) -> Optional[Dict[str, Any]]:
+    def get_account_delegations(self, account: str) -> dict[str, Any] | None:
         """
         Get account delegations from the balance API.
 
@@ -242,7 +242,7 @@ class HAF:
             log.error(f"Unexpected error retrieving delegations for {account}: {e}")
             return None
 
-    def get_account_recurrent_transfers(self, account: str) -> Optional[Dict[str, Any]]:
+    def get_account_recurrent_transfers(self, account: str) -> dict[str, Any] | None:
         """
         Get account recurrent transfers from the balance API.
 
@@ -276,7 +276,7 @@ class HAF:
             log.error(f"Unexpected error retrieving recurrent transfers for {account}: {e}")
             return None
 
-    def get_reputation_version(self) -> Optional[str]:
+    def get_reputation_version(self) -> str | None:
         """
         Get the reputation tracker's version from the reputation API.
 
@@ -302,7 +302,7 @@ class HAF:
             log.error(f"Unexpected error retrieving reputation version: {e}")
             return None
 
-    def get_reputation_last_synced_block(self) -> Optional[int]:
+    def get_reputation_last_synced_block(self) -> int | None:
         """
         Get the last block number synced by the reputation tracker.
 
@@ -328,7 +328,7 @@ class HAF:
             log.error(f"Unexpected error retrieving last synced block: {e}")
             return None
 
-    def get_balance_version(self) -> Optional[str]:
+    def get_balance_version(self) -> str | None:
         """
         Get the balance tracker's version from the balance API.
 
@@ -354,7 +354,7 @@ class HAF:
             log.error(f"Unexpected error retrieving balance version: {e}")
             return None
 
-    def get_balance_last_synced_block(self) -> Optional[int]:
+    def get_balance_last_synced_block(self) -> int | None:
         """
         Get the last block number synced by the balance tracker.
 

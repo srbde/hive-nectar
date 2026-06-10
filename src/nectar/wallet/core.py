@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Generator, List, Optional, Union
+from collections.abc import Generator
+from typing import Any
 
 from nectar.account import Account
 from nectar.exceptions import (
@@ -84,8 +85,8 @@ class Wallet:
 
     def __init__(
         self,
-        blockchain_instance: Optional[Any] = None,
-        store: Optional[KeyStoreInterface] = None,
+        blockchain_instance: Any | None = None,
+        store: KeyStoreInterface | None = None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -142,7 +143,7 @@ class Wallet:
             raise OfflineHasNoRPCException("No RPC available in offline mode!")
         return self.blockchain.rpc
 
-    def setKeys(self, loadkeys: Union[Dict[str, Any], List[Any], set, str]) -> None:
+    def setKeys(self, loadkeys: dict[str, Any] | list[Any] | set | str) -> None:
         """This method is strictly only for in memory keys that are
         passed to Wallet with the ``keys`` argument
         """
@@ -159,7 +160,7 @@ class Wallet:
         """Is the key store encrypted?"""
         return self.store.is_encrypted()
 
-    def unlock(self, pwd: str) -> Optional[bool]:
+    def unlock(self, pwd: str) -> bool | None:
         """Unlock the wallet database"""
         unlock_ok = None
         if self.store.is_encrypted():
@@ -234,7 +235,7 @@ class Wallet:
             raise KeyAlreadyInStoreException("Key already in the store")
         self.store.add(str(wif), str(pub))
 
-    def getPrivateKeyForPublicKey(self, pub: str) -> Optional[str]:
+    def getPrivateKeyForPublicKey(self, pub: str) -> str | None:
         """Obtain the private key for a given public key
 
         :param str pub: Public Key
@@ -260,7 +261,7 @@ class Wallet:
             if a["name"] == account:
                 self.store.delete(a["pubkey"])
 
-    def getKeyForAccount(self, name: str, key_type: str) -> Optional[str]:
+    def getKeyForAccount(self, name: str, key_type: str) -> str | None:
         """Obtain `key_type` Private Key for an account from the wallet database
 
         :param str name: Account name
@@ -289,10 +290,10 @@ class Wallet:
                 except MissingKeyError:
                     key = None
             if key is None:
-                raise MissingKeyError("No private key for {} found".format(name))
+                raise MissingKeyError(f"No private key for {name} found")
         return
 
-    def getKeysForAccount(self, name: str, key_type: str) -> Optional[List[str]]:
+    def getKeysForAccount(self, name: str, key_type: str) -> list[str] | None:
         """Obtain a List of `key_type` Private Keys for an account from the wallet database
 
         :param str name: Account name
@@ -322,44 +323,44 @@ class Wallet:
                 except MissingKeyError:
                     key = None
             if not keys:
-                raise MissingKeyError("No private key for {} found".format(name))
+                raise MissingKeyError(f"No private key for {name} found")
             return keys
         return
 
-    def getOwnerKeyForAccount(self, name: str) -> Optional[str]:
+    def getOwnerKeyForAccount(self, name: str) -> str | None:
         """Obtain owner Private Key for an account from the wallet database"""
         return self.getKeyForAccount(name, "owner")
 
-    def getMemoKeyForAccount(self, name: str) -> Optional[str]:
+    def getMemoKeyForAccount(self, name: str) -> str | None:
         """Obtain owner Memo Key for an account from the wallet database"""
         return self.getKeyForAccount(name, "memo")
 
-    def getActiveKeyForAccount(self, name: str) -> Optional[str]:
+    def getActiveKeyForAccount(self, name: str) -> str | None:
         """Obtain owner Active Key for an account from the wallet database"""
         return self.getKeyForAccount(name, "active")
 
-    def getPostingKeyForAccount(self, name: str) -> Optional[str]:
+    def getPostingKeyForAccount(self, name: str) -> str | None:
         """Obtain owner Posting Key for an account from the wallet database"""
         return self.getKeyForAccount(name, "posting")
 
-    def getOwnerKeysForAccount(self, name: str) -> Optional[List[str]]:
+    def getOwnerKeysForAccount(self, name: str) -> list[str] | None:
         """Obtain list of all owner Private Keys for an account from the wallet database"""
         return self.getKeysForAccount(name, "owner")
 
-    def getActiveKeysForAccount(self, name: str) -> Optional[List[str]]:
+    def getActiveKeysForAccount(self, name: str) -> list[str] | None:
         """Obtain list of all owner Active Keys for an account from the wallet database"""
         return self.getKeysForAccount(name, "active")
 
-    def getPostingKeysForAccount(self, name: str) -> Optional[List[str]]:
+    def getPostingKeysForAccount(self, name: str) -> list[str] | None:
         """Obtain list of all owner Posting Keys for an account from the wallet database"""
         return self.getKeysForAccount(name, "posting")
 
-    def getAccountFromPrivateKey(self, wif: str) -> Optional[str]:
+    def getAccountFromPrivateKey(self, wif: str) -> str | None:
         """Obtain account name from private key"""
         pub = self.publickey_from_wif(wif)
         return self.getAccountFromPublicKey(pub)
 
-    def getAccountsFromPublicKey(self, pub: str) -> Generator[str, None, None]:
+    def getAccountsFromPublicKey(self, pub: str) -> Generator[str]:
         """Obtain all account names associated with a public key
 
         :param str pub: Public key
@@ -371,7 +372,7 @@ class Wallet:
         for name in names:
             yield from name
 
-    def getAccountFromPublicKey(self, pub: str) -> Optional[str]:
+    def getAccountFromPublicKey(self, pub: str) -> str | None:
         """Obtain the first account name from public key
 
         :param str pub: Public key
@@ -386,7 +387,7 @@ class Wallet:
         else:
             return names[0]
 
-    def getAllAccounts(self, pub: str) -> Generator[Dict[str, Any], None, None]:
+    def getAllAccounts(self, pub: str) -> Generator[dict[str, Any]]:
         """Get the account data for a public key (all accounts found for this
         public key)
 
@@ -404,7 +405,7 @@ class Wallet:
                 "pubkey": pub,
             }
 
-    def getAccount(self, pub: str) -> Optional[Dict[str, Any]]:
+    def getAccount(self, pub: str) -> dict[str, Any] | None:
         """Get the account data for a public key (first account found for this
         public key)
 
@@ -425,7 +426,7 @@ class Wallet:
                 "pubkey": pub,
             }
 
-    def getKeyType(self, account: Union[Account, Dict[str, Any]], pub: str) -> Optional[str]:
+    def getKeyType(self, account: Account | dict[str, Any], pub: str) -> str | None:
         """Get key type
 
         :param nectar.account.Account/dict account: Account data
@@ -441,7 +442,7 @@ class Wallet:
             return "memo"
         return None
 
-    def getAccounts(self) -> List[Dict[str, Any]]:
+    def getAccounts(self) -> list[dict[str, Any]]:
         """Return all accounts installed in the wallet database"""
         pubkeys = self.getPublicKeys()
         accounts = []
@@ -451,7 +452,7 @@ class Wallet:
                 accounts.extend(self.getAllAccounts(pubkey))
         return accounts
 
-    def getPublicKeys(self, current: bool = False) -> List[str]:
+    def getPublicKeys(self, current: bool = False) -> list[str]:
         """Return all installed public keys
         :param bool current: If true, returns only keys for currently
             connected blockchain

@@ -757,7 +757,7 @@ def info(objects):
                 elif key == "reputation" and int(value) > 0:
                     value = int(value)
                     rep = account.rep
-                    value = "{:.2f} ({:d})".format(rep, value)
+                    value = f"{rep:.2f} ({value:d})"
                 elif isinstance(value, dict) and "asset" in value:
                     value = str(account[key])
                 t.add_row([key, value])
@@ -1040,7 +1040,7 @@ def draw(
         block["id"],
         trx_id,
     )
-    body += "| trx id | [{}](https://hiveblocks.com/tx/{}) |\n".format(trx_id, trx_id)
+    body += f"| trx id | [{trx_id}](https://hiveblocks.com/tx/{trx_id}) |\n"
     body += "| block id | %s |\n" % block["block_id"]
     body += "| previous id | %s |\n" % block["previous"]
     body += "| hash type | %s |\n" % hashtype

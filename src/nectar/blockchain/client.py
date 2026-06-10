@@ -5,7 +5,7 @@ import math
 import time
 from datetime import date, datetime, timedelta
 from datetime import time as datetime_time
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, cast
 
 from nectar.block import Block, BlockHeader
 from nectar.blockchain.concurrency import FUTURES_MODULE, Pool
@@ -82,7 +82,7 @@ class Blockchain:
         self,
         blockchain_instance: Any = None,
         mode: str = "irreversible",
-        max_block_wait_repetition: Optional[int] = None,
+        max_block_wait_repetition: int | None = None,
         data_refresh_time_seconds: int = 900,
         **kwargs,
     ) -> None:
@@ -123,7 +123,7 @@ class Blockchain:
         except UnknownTransaction:
             return False
 
-    def get_transaction(self, transaction_id: str) -> Dict[str, Any]:
+    def get_transaction(self, transaction_id: str) -> dict[str, Any]:
         """Returns a transaction from the blockchain
 
         :param str transaction_id: transaction_id
@@ -134,7 +134,7 @@ class Blockchain:
         ret = self.blockchain.rpc.get_transaction({"id": transaction_id})
         return ret
 
-    def get_transaction_hex(self, transaction: Dict[str, Any]) -> str:
+    def get_transaction_hex(self, transaction: dict[str, Any]) -> str:
         """Returns a hexdump of the serialized binary form of a transaction.
 
         :param dict transaction: transaction
@@ -176,7 +176,7 @@ class Blockchain:
 
     def get_estimated_block_num(
         self,
-        date: Union[datetime, date, datetime_time, None],
+        date: datetime | date | datetime_time | None,
         estimateForwards: bool = False,
         accurate: bool = True,
     ) -> int:
@@ -286,9 +286,9 @@ class Blockchain:
 
     def blocks(
         self,
-        start: Optional[int] = None,
-        stop: Optional[int] = None,
-        max_batch_size: Optional[int] = None,
+        start: int | None = None,
+        stop: int | None = None,
+        max_batch_size: int | None = None,
         threading: bool = False,
         thread_num: int = 8,
         only_ops: bool = False,
@@ -555,12 +555,12 @@ class Blockchain:
     def wait_for_and_get_block(
         self,
         block_number: int,
-        blocks_waiting_for: Optional[int] = None,
+        blocks_waiting_for: int | None = None,
         only_ops: bool = False,
         only_virtual_ops: bool = False,
         block_number_check_cnt: int = -1,
-        last_current_block_num: Optional[int] = None,
-    ) -> Optional[Block]:
+        last_current_block_num: int | None = None,
+    ) -> Block | None:
         """Get the desired block from the chain, if the current head block is smaller (for both head and irreversible)
         then we wait, but a maxmimum of blocks_waiting_for * max_block_wait_repetition time before failure.
 
@@ -630,8 +630,8 @@ class Blockchain:
 
     def ops(
         self,
-        start: Optional[int] = None,
-        stop: Optional[int] = None,
+        start: int | None = None,
+        stop: int | None = None,
         only_virtual_ops: bool = False,
         **kwargs: Any,
     ) -> None:
@@ -648,11 +648,11 @@ class Blockchain:
     def ops_statistics(
         self,
         start: int,
-        stop: Optional[int] = None,
-        add_to_ops_stat: Optional[Dict[str, int]] = None,
+        stop: int | None = None,
+        add_to_ops_stat: dict[str, int] | None = None,
         with_virtual_ops: bool = True,
         verbose: bool = False,
-    ) -> Optional[Dict[str, int]]:
+    ) -> dict[str, int] | None:
         """Generates statistics for all operations (including virtual operations) starting from
         ``start``.
 
@@ -689,7 +689,7 @@ class Blockchain:
         return ops_stat
 
     def stream(
-        self, opNames: Optional[List[str]] = None, raw_ops: bool = False, *args: Any, **kwargs: Any
+        self, opNames: list[str] | None = None, raw_ops: bool = False, *args: Any, **kwargs: Any
     ) -> Any:
         """
         Yield blockchain operations filtered by type, normalizing several node event formats into a consistent output.
@@ -839,8 +839,8 @@ class Blockchain:
                             yield updated_op
 
     def awaitTxConfirmation(
-        self, transaction: Dict[str, Any], limit: int = 10
-    ) -> Optional[Dict[str, Any]]:
+        self, transaction: dict[str, Any], limit: int = 10
+    ) -> dict[str, Any] | None:
         """Returns the transaction as seen by the blockchain after being
         included into a block
 
@@ -869,7 +869,7 @@ class Blockchain:
                 raise Exception("The operation has not been added after %d blocks!" % (limit))
 
     @staticmethod
-    def hash_op(event: Union[Dict[str, Any], List[Any]]) -> str:
+    def hash_op(event: dict[str, Any] | list[Any]) -> str:
         """This method generates a hash of blockchain operation."""
         if isinstance(event, dict) and "type" in event and "value" in event:
             op_type = event["type"]
@@ -884,7 +884,7 @@ class Blockchain:
         self,
         start: str = "",
         stop: str = "",
-        steps: Union[int, float] = 1e3,
+        steps: int | float = 1e3,
         limit: int = -1,
         **kwargs: Any,
     ) -> Any:
@@ -932,7 +932,7 @@ class Blockchain:
         self,
         start: str = "",
         stop: str = "",
-        steps: Union[int, float] = 1e3,
+        steps: int | float = 1e3,
         limit: int = -1,
         **kwargs: Any,
     ) -> Any:
@@ -972,7 +972,7 @@ class Blockchain:
             if len(accounts) < batch_limit or (stop and lastname == stop):
                 return
 
-    def get_similar_account_names(self, name: str, limit: int = 5) -> Optional[List[str]]:
+    def get_similar_account_names(self, name: str, limit: int = 5) -> list[str] | None:
         """
         Return a list of accounts with names similar to the given name.
 
@@ -998,8 +998,8 @@ class Blockchain:
             return account["accounts"]
 
     def find_rc_accounts(
-        self, name: Union[str, List[str]]
-    ) -> Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]:
+        self, name: str | list[str]
+    ) -> dict[str, Any] | list[dict[str, Any]] | None:
         """
         Return resource credit (RC) parameters for one or more accounts.
 
@@ -1026,8 +1026,8 @@ class Blockchain:
                 return account["rc_accounts"][0]
 
     def list_change_recovery_account_requests(
-        self, start: Union[str, List[str]] = "", limit: int = 1000, order: str = "by_account"
-    ) -> Optional[List[Dict[str, Any]]]:
+        self, start: str | list[str] = "", limit: int = 1000, order: str = "by_account"
+    ) -> list[dict[str, Any]] | None:
         """
         Return pending change_recovery_account requests from the blockchain.
 
@@ -1054,8 +1054,8 @@ class Blockchain:
             return requests["requests"]
 
     def find_change_recovery_account_requests(
-        self, accounts: Union[str, List[str]]
-    ) -> Optional[List[Dict[str, Any]]]:
+        self, accounts: str | list[str]
+    ) -> list[dict[str, Any]] | None:
         """
         Find pending change_recovery_account requests for one or more accounts.
 

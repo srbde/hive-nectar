@@ -7,7 +7,7 @@ import string
 import time as timenow
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 from ruamel.yaml import YAML
 
@@ -21,7 +21,7 @@ RE_HUNK_HEADER = re.compile(
 )
 
 
-def formatTime(t: Union[float, datetime, date, time]) -> Optional[str]:
+def formatTime(t: float | datetime | date | time) -> str | None:
     """Properly Format Time for permlinks"""
     if isinstance(t, float):
         return datetime.fromtimestamp(t, tz=timezone.utc).strftime("%Y%m%dt%H%M%S%Z")
@@ -29,9 +29,7 @@ def formatTime(t: Union[float, datetime, date, time]) -> Optional[str]:
         return t.strftime("%Y%m%dt%H%M%S%Z")
 
 
-def addTzInfo(
-    t: Optional[Union[datetime, date, time]], timezone_str: str = "UTC"
-) -> Optional[datetime]:
+def addTzInfo(t: datetime | date | time | None, timezone_str: str = "UTC") -> datetime | None:
     """Returns a datetime object with tzinfo added
     Uses Python's built-in timezone when possible
     """
@@ -60,7 +58,7 @@ def addTzInfo(
     return None
 
 
-def formatTimeString(t: Union[str, datetime, date, time]) -> str:
+def formatTimeString(t: str | datetime | date | time) -> str:
     """Properly Format Time for permlinks"""
     if isinstance(t, (datetime, date, time)):
         # Convert date/time to datetime first if needed
@@ -75,7 +73,7 @@ def formatTimeString(t: Union[str, datetime, date, time]) -> str:
     return result.strftime(timeFormat)
 
 
-def formatToTimeStamp(t: Union[datetime, date, time, str]) -> int:
+def formatToTimeStamp(t: datetime | date | time | str) -> int:
     """Returns a timestamp integer
 
     :param datetime t: datetime object
@@ -137,7 +135,7 @@ def parse_time(block_time: str) -> datetime:
     return datetime.strptime(block_time, timeFormat).replace(tzinfo=timezone.utc)
 
 
-def assets_from_string(text: str) -> List[str]:
+def assets_from_string(text: str) -> list[str]:
     """Correctly split a string containing an asset pair.
 
     Splits the string into two assets with the separator being on of the
@@ -157,8 +155,8 @@ def sanitize_permlink(permlink: str) -> str:
 
 def derive_permlink(
     title: str,
-    parent_permlink: Optional[str] = None,
-    parent_author: Optional[str] = None,
+    parent_permlink: str | None = None,
+    parent_author: str | None = None,
     max_permlink_length: int = 256,
     with_suffix: bool = True,
 ) -> str:
@@ -205,7 +203,7 @@ def derive_permlink(
             return body
 
 
-def resolve_authorperm(identifier: str) -> Tuple[str, str]:
+def resolve_authorperm(identifier: str) -> tuple[str, str]:
     """
     Parse an author/permlink identifier and return (author, permlink).
 
@@ -253,7 +251,7 @@ def construct_authorperm(*args: Any) -> str:
     return f"{username_prefix}{author}/{permlink}"
 
 
-def resolve_root_identifier(url: str) -> Tuple[str, str]:
+def resolve_root_identifier(url: str) -> tuple[str, str]:
     m = re.match(r"/([^/]*)/@([^/]*)/([^#]*).*", url)
     if not m:
         return "", ""
@@ -264,7 +262,7 @@ def resolve_root_identifier(url: str) -> Tuple[str, str]:
         return construct_authorperm(author, permlink), category
 
 
-def resolve_authorpermvoter(identifier: str) -> Tuple[str, str, str]:
+def resolve_authorpermvoter(identifier: str) -> tuple[str, str, str]:
     """Correctly split a string containing an authorpermvoter.
 
     Splits the string into author and permlink with the
@@ -309,7 +307,7 @@ def construct_authorpermvoter(*args: Any) -> str:
     return f"{username_prefix}{author}/{permlink}|{voter}"
 
 
-def reputation_to_score(rep: Union[str, int]) -> float:
+def reputation_to_score(rep: str | int) -> float:
     """Converts the account reputation value into the reputation score"""
     if isinstance(rep, str):
         rep = int(rep)
@@ -323,8 +321,8 @@ def reputation_to_score(rep: Union[str, int]) -> float:
 
 
 def remove_from_dict(
-    obj: Any, keys: Optional[List[str]] = None, keep_keys: bool = True
-) -> Dict[str, Any]:
+    obj: Any, keys: list[str] | None = None, keep_keys: bool = True
+) -> dict[str, Any]:
     """Prune a class or dictionary of all but keys (keep_keys=True).
     Prune a class or dictionary of specified keys.(keep_keys=False).
     """
@@ -347,13 +345,13 @@ def make_patch(a: str, b: str) -> str:
     return patch_text
 
 
-def findall_patch_hunks(body: Optional[str] = None) -> List[Tuple]:
+def findall_patch_hunks(body: str | None = None) -> list[tuple]:
     if body is None:
         return []
     return RE_HUNK_HEADER.findall(body)
 
 
-def derive_beneficiaries(beneficiaries: Union[str, List[str]]) -> List[Dict[str, Any]]:
+def derive_beneficiaries(beneficiaries: str | list[str]) -> list[dict[str, Any]]:
     """
     Parse beneficiaries and return a normalized, merged list of unique accounts with weights in basis points.
 
@@ -417,7 +415,7 @@ def derive_beneficiaries(beneficiaries: Union[str, List[str]]) -> List[Dict[str,
     return result
 
 
-def derive_tags(tags: str) -> List[str]:
+def derive_tags(tags: str) -> list[str]:
     tags_list = []
     if len(tags.split(",")) > 1:
         for tag in tags.split(","):
@@ -430,7 +428,7 @@ def derive_tags(tags: str) -> List[str]:
     return tags_list
 
 
-def seperate_yaml_dict_from_body(content: str) -> Tuple[str, Dict[str, Any]]:
+def seperate_yaml_dict_from_body(content: str) -> tuple[str, dict[str, Any]]:
     parameter = {}
     body = ""
     if len(content.split("---\n")) > 1:
@@ -446,9 +444,9 @@ def seperate_yaml_dict_from_body(content: str) -> Tuple[str, Dict[str, Any]]:
 
 
 def create_yaml_header(
-    comment: Dict[str, Any],
-    json_metadata: Optional[Dict[str, Any]] = None,
-    reply_identifier: Optional[str] = None,
+    comment: dict[str, Any],
+    json_metadata: dict[str, Any] | None = None,
+    reply_identifier: str | None = None,
 ) -> str:
     """
     Create a YAML front-matter header string from post/comment data and metadata.
@@ -524,7 +522,7 @@ def create_yaml_header(
     return yaml_prefix
 
 
-def load_dirty_json(dirty_json: str) -> Dict[str, Any]:
+def load_dirty_json(dirty_json: str) -> dict[str, Any]:
     regex_replace = [
         (r"([ \{,:\[])(u)?'([^']+)'", r'\1"\3"'),
         (r" False([, \}\]])", r" false\1"),
@@ -550,7 +548,7 @@ def create_new_password(length: int = 32) -> str:
     return import_password
 
 
-def import_coldcard_wif(filename: Union[str, Path]) -> Tuple[str, str]:
+def import_coldcard_wif(filename: str | Path) -> tuple[str, str]:
     """Reads a exported coldcard Wif text file and returns the WIF and used path"""
     next_var = ""
     import_password = ""
@@ -585,7 +583,7 @@ def generate_password(import_password: str, wif: int = 1) -> str:
     return password
 
 
-def import_pubkeys(import_pub: Union[str, Path]) -> Tuple[str, str, str, str]:
+def import_pubkeys(import_pub: str | Path) -> tuple[str, str, str, str]:
     if not Path(import_pub).is_file():
         raise Exception(f"File {import_pub} does not exist!")
     with open(import_pub) as fp:
@@ -601,7 +599,7 @@ def import_pubkeys(import_pub: Union[str, Path]) -> Tuple[str, str, str, str]:
     return owner, active, posting, memo
 
 
-def import_custom_json(jsonid: str, json_data: Dict[str, Any]) -> Tuple[List[str], List[str]]:
+def import_custom_json(jsonid: str, json_data: dict[str, Any]) -> tuple[list[str], list[str]]:
     """Returns a list of required authorities for a custom_json operation.
 
     Returns the author and required posting authorities for a custom_json operation.

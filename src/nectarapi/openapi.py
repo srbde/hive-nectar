@@ -1,9 +1,7 @@
-from typing import Dict, Optional
-
 # Static method→API mapping derived from the hived OpenAPI spec.
 # We intentionally embed a small, opinionated subset to avoid shipping the full
 # OpenAPI document with the package while still providing sensible defaults.
-METHOD_API_MAP: Dict[str, str] = {
+METHOD_API_MAP: dict[str, str] = {
     # Broadcast
     "broadcast_transaction": "network_broadcast_api",
     "broadcast_transaction_synchronous": "network_broadcast_api",
@@ -94,7 +92,7 @@ METHOD_API_MAP: Dict[str, str] = {
 }
 
 
-def get_default_api_for_method(method_name: str) -> Optional[str]:
+def get_default_api_for_method(method_name: str) -> str | None:
     """
     Return the default API name for a method using the static map.
 

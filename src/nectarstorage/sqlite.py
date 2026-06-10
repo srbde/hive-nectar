@@ -5,7 +5,7 @@ import sqlite3
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional, Tuple, Union
+from typing import Any
 
 from appdirs import user_data_dir
 
@@ -41,7 +41,7 @@ class SQLiteFile:
 
     data_dir: Path
     storageDatabase: str
-    sqlite_file: Union[Path, str]
+    sqlite_file: Path | str
     use_memory: bool
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -67,7 +67,7 @@ class SQLiteFile:
                 f"Falling back to in-memory SQLite database: {self.sqlite_file}"
             )
 
-    def sqlite3_backup(self, backupdir: Union[str, Path]) -> None:
+    def sqlite3_backup(self, backupdir: str | Path) -> None:
         """Create timestamped database copy"""
         if getattr(self, "use_memory", False):
             return
@@ -79,7 +79,7 @@ class SQLiteFile:
         )
         self.sqlite3_copy(self.sqlite_file, backup_file)
 
-    def sqlite3_copy(self, src: Union[Path, str], dst: Union[Path, str]) -> None:
+    def sqlite3_copy(self, src: Path | str, dst: Path | str) -> None:
         """Copy sql file from src to dst"""
         if getattr(self, "use_memory", False):
             return
@@ -99,7 +99,7 @@ class SQLiteFile:
         finally:
             connection.close()
 
-    def recover_with_latest_backup(self, backupdir: Union[str, Path] = "backups") -> None:
+    def recover_with_latest_backup(self, backupdir: str | Path = "backups") -> None:
         """Replace database with latest backup"""
         if getattr(self, "use_memory", False):
             return
@@ -119,7 +119,7 @@ class SQLiteFile:
         if newest_backup_file is not None:
             self.sqlite3_copy(newest_backup_file, self.sqlite_file)
 
-    def clean_data(self, backupdir: Union[str, Path] = "backups") -> None:
+    def clean_data(self, backupdir: str | Path = "backups") -> None:
         """Delete files older than 70 days"""
         if getattr(self, "use_memory", False):
             return
@@ -157,10 +157,10 @@ class SQLiteCommon:
         * ``sqlite_file``: Path to the SQLite Database file
     """
 
-    sqlite_file: Union[Path, str]
+    sqlite_file: Path | str
     use_memory: bool
 
-    def sql_fetchone(self, query: Tuple[str, Tuple]) -> Optional[Tuple]:
+    def sql_fetchone(self, query: tuple[str, tuple]) -> tuple | None:
         connection = sqlite3.connect(str(self.sqlite_file), uri=getattr(self, "use_memory", False))
         try:
             cursor = connection.cursor()
@@ -170,7 +170,7 @@ class SQLiteCommon:
             connection.close()
         return result
 
-    def sql_fetchall(self, query: Tuple[str, Tuple]) -> list:
+    def sql_fetchall(self, query: tuple[str, tuple]) -> list:
         connection = sqlite3.connect(str(self.sqlite_file), uri=getattr(self, "use_memory", False))
         try:
             cursor = connection.cursor()
@@ -180,7 +180,7 @@ class SQLiteCommon:
             connection.close()
         return results
 
-    def sql_execute(self, query: Tuple[str, Tuple], lastid: bool = False) -> Optional[int]:
+    def sql_execute(self, query: tuple[str, tuple], lastid: bool = False) -> int | None:
         connection = sqlite3.connect(str(self.sqlite_file), uri=getattr(self, "use_memory", False))
         try:
             cursor = connection.cursor()
@@ -273,7 +273,7 @@ class SQLiteStore(SQLiteFile, SQLiteCommon, StoreInterface):
             )
         self.sql_execute(query)
 
-    def __getitem__(self, key: str) -> Optional[str]:
+    def __getitem__(self, key: str) -> str | None:
         """Gets an item from the store as if it was a dictionary
 
         :param str value: Value

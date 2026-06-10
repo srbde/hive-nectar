@@ -11,7 +11,7 @@ import os
 import struct
 from binascii import hexlify, unhexlify
 from hashlib import sha256
-from typing import List, Optional, Tuple, Union
+from typing import Optional
 
 import coincurve
 
@@ -40,7 +40,7 @@ def int_to_hex(x: int) -> bytes:
     return bytes(hex(x)[2:], encoding="utf-8")
 
 
-def parse_path(nstr: str, as_bytes: bool = False) -> Union[List[int], bytes]:
+def parse_path(nstr: str, as_bytes: bool = False) -> list[int] | bytes:
     """Parse a derivation path like \"m/0'/1/2\" into a list of indexes or bytes."""
     r = list()
     for s in nstr.split("/"):
@@ -63,7 +63,7 @@ class BIP32Key:
     #
     @classmethod
     def fromEntropy(
-        cls, entropy: Optional[bytes] = None, public: bool = False, testnet: bool = False
+        cls, entropy: bytes | None = None, public: bool = False, testnet: bool = False
     ) -> "BIP32Key":
         """Create a BIP32Key using supplied entropy >= MIN_ENTROPY_LEN"""
         if entropy is None:
@@ -142,7 +142,7 @@ class BIP32Key:
     # Normal class initializer
     def __init__(
         self,
-        secret: Union[bytes, coincurve.PublicKey],
+        secret: bytes | coincurve.PublicKey,
         chain: bytes,
         depth: int,
         index: int,
@@ -189,7 +189,7 @@ class BIP32Key:
 
     # Internal methods not intended to be called externally
     #
-    def hmac(self, data: bytes) -> Tuple[bytes, bytes]:
+    def hmac(self, data: bytes) -> tuple[bytes, bytes]:
         """
         Calculate the HMAC-SHA512 of input data using the chain code as key.
 
@@ -370,7 +370,7 @@ class BIP32Key:
         payload = hexlify(raw).decode("ascii")
         return base58CheckEncode(int.from_bytes(addressversion, "big"), payload)
 
-    def ExtendedKey(self, private: bool = True, encoded: bool = True) -> Union[str, bytes]:
+    def ExtendedKey(self, private: bool = True, encoded: bool = True) -> str | bytes:
         """Return extended private or public key as string, optionally base58 encoded"""
         if self.public is True and private is True:
             raise Exception(

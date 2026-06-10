@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from nectar.constants import (
     EXEC_FOLLOW_CUSTOM_OP_SCALE,
@@ -13,7 +13,7 @@ from nectarbase.signedtransactions import Signed_Transaction
 
 
 class RC:
-    def __init__(self, blockchain_instance: Optional[Any] = None, **kwargs: Any) -> None:
+    def __init__(self, blockchain_instance: Any | None = None, **kwargs: Any) -> None:
         """
         Initialize the RC helper with a blockchain instance.
 
@@ -31,7 +31,7 @@ class RC:
 
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
-    def get_tx_size(self, op: Union[Any, Operation, Dict[str, Any]]) -> int:
+    def get_tx_size(self, op: Any | Operation | dict[str, Any]) -> int:
         """
         Estimate the serialized size (in bytes) of a signed transaction containing the given operation.
 
@@ -66,7 +66,7 @@ class RC:
         state_bytes_count: int = 0,
         new_account_op_count: int = 0,
         market_op_count: int = 0,
-    ) -> Dict[str, int]:
+    ) -> dict[str, int]:
         """
         Build and return a resource_count mapping for RC cost calculation.
 
@@ -99,7 +99,7 @@ class RC:
             resource_count["resource_market_bytes"] = tx_size
         return resource_count
 
-    def comment_dict(self, comment_dict: Dict[str, Any]) -> Dict[str, int]:
+    def comment_dict(self, comment_dict: dict[str, Any]) -> dict[str, int]:
         """Calc RC costs for a comment dict object
 
         Example for calculating RC costs
@@ -130,7 +130,7 @@ class RC:
 
     def comment(
         self, tx_size: int = 1000, permlink_length: int = 10, parent_permlink_length: int = 10
-    ) -> Dict[str, int]:
+    ) -> dict[str, int]:
         """Calc RC for a comment"""
         state_bytes_count = state_object_size_info["comment_object_base_size"]
         state_bytes_count += (
@@ -144,7 +144,7 @@ class RC:
         resource_count = self.get_resource_count(tx_size, execution_time_count, state_bytes_count)
         return self.blockchain.get_rc_cost(resource_count)
 
-    def vote_dict(self, vote_dict: Dict[str, Any]) -> Dict[str, int]:
+    def vote_dict(self, vote_dict: dict[str, Any]) -> dict[str, int]:
         """Calc RC costs for a vote
 
         Example for calculating RC costs
@@ -165,14 +165,14 @@ class RC:
         tx_size = self.get_tx_size(op)
         return self.vote(tx_size=tx_size)
 
-    def vote(self, tx_size: int = 210) -> Dict[str, int]:
+    def vote(self, tx_size: int = 210) -> dict[str, int]:
         """Calc RC for a vote"""
         state_bytes_count = state_object_size_info["comment_vote_object_base_size"]
         execution_time_count = resource_execution_time["vote_operation_exec_time"]
         resource_count = self.get_resource_count(tx_size, execution_time_count, state_bytes_count)
         return self.blockchain.get_rc_cost(resource_count)
 
-    def transfer_dict(self, transfer_dict: Dict[str, Any]) -> Dict[str, int]:
+    def transfer_dict(self, transfer_dict: dict[str, Any]) -> dict[str, int]:
         """
         Calculate Resource Credit (RC) cost for a transfer operation represented as a dict.
 
@@ -189,7 +189,7 @@ class RC:
         tx_size = self.get_tx_size(op)
         return self.transfer(tx_size=tx_size, market_op_count=market_op_count)
 
-    def transfer(self, tx_size: int = 290, market_op_count: int = 1) -> Dict[str, int]:
+    def transfer(self, tx_size: int = 290, market_op_count: int = 1) -> dict[str, int]:
         """Calc RC of a transfer"""
         execution_time_count = resource_execution_time["transfer_operation_exec_time"]
         resource_count = self.get_resource_count(
@@ -197,7 +197,7 @@ class RC:
         )
         return self.blockchain.get_rc_cost(resource_count)
 
-    def custom_json_dict(self, custom_json_dict: Dict[str, Any]) -> Dict[str, int]:
+    def custom_json_dict(self, custom_json_dict: dict[str, Any]) -> dict[str, int]:
         """Calc RC costs for a custom_json
 
         Example for calculating RC costs
@@ -226,14 +226,14 @@ class RC:
         follow_id = custom_json_dict["id"] == "follow"
         return self.custom_json(tx_size=tx_size, follow_id=follow_id)
 
-    def custom_json(self, tx_size: int = 444, follow_id: bool = False) -> Dict[str, int]:
+    def custom_json(self, tx_size: int = 444, follow_id: bool = False) -> dict[str, int]:
         execution_time_count = resource_execution_time["custom_json_operation_exec_time"]
         if follow_id:
             execution_time_count *= EXEC_FOLLOW_CUSTOM_OP_SCALE
         resource_count = self.get_resource_count(tx_size, execution_time_count)
         return self.blockchain.get_rc_cost(resource_count)
 
-    def account_update_dict(self, account_update_dict: Dict[str, Any]) -> Dict[str, int]:
+    def account_update_dict(self, account_update_dict: dict[str, Any]) -> dict[str, int]:
         """Calc RC costs for account update"""
         op = operations.Account_update(**account_update_dict)
         tx_size = self.get_tx_size(op)
@@ -241,7 +241,7 @@ class RC:
         resource_count = self.get_resource_count(tx_size, execution_time_count)
         return self.blockchain.get_rc_cost(resource_count)
 
-    def claim_account(self, tx_size: int = 300) -> Dict[str, int]:
+    def claim_account(self, tx_size: int = 300) -> dict[str, int]:
         """Claim account"""
         execution_time_count = resource_execution_time["claim_account_operation_exec_time"]
         resource_count = self.get_resource_count(
@@ -249,14 +249,14 @@ class RC:
         )
         return self.blockchain.get_rc_cost(resource_count)
 
-    def get_authority_byte_count(self, auth: Dict[str, Any]) -> int:
+    def get_authority_byte_count(self, auth: dict[str, Any]) -> int:
         return (
             state_object_size_info["authority_base_size"]
             + state_object_size_info["authority_account_member_size"] * len(auth["account_auths"])
             + state_object_size_info["authority_key_member_size"] * len(auth["key_auths"])
         )
 
-    def account_create_dict(self, account_create_dict: Dict[str, Any]) -> Dict[str, int]:
+    def account_create_dict(self, account_create_dict: dict[str, Any]) -> dict[str, int]:
         """Calc RC costs for account create"""
         op = operations.Account_create(**account_create_dict)
         state_bytes_count = state_object_size_info["account_object_base_size"]
@@ -270,8 +270,8 @@ class RC:
         return self.blockchain.get_rc_cost(resource_count)
 
     def create_claimed_account_dict(
-        self, create_claimed_account_dict: Dict[str, Any]
-    ) -> Dict[str, int]:
+        self, create_claimed_account_dict: dict[str, Any]
+    ) -> dict[str, int]:
         """Calc RC costs for claimed account create"""
         op = operations.Create_claimed_account(**create_claimed_account_dict)
         state_bytes_count = state_object_size_info["account_object_base_size"]
@@ -286,7 +286,7 @@ class RC:
 
     def set_slot_delegator(
         self, from_pool: str, to_account: str, to_slot: int, signer: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Set a slot to receive RC from a pool
 
         :param str from_pool: Pool to set the slot to
@@ -305,7 +305,7 @@ class RC:
         ]
         return self.blockchain.custom_json("rc", json_body, required_auths=[signer])
 
-    def delegate_from_pool(self, from_pool: str, to_account: str, max_rc: int) -> Dict[str, Any]:
+    def delegate_from_pool(self, from_pool: str, to_account: str, max_rc: int) -> dict[str, Any]:
         """Set a slot to receive RC from a pool
 
         :param str from_pool: Pool to set the slot to
@@ -323,7 +323,7 @@ class RC:
         ]
         return self.blockchain.custom_json("rc", json_body, required_auths=[from_pool])
 
-    def delegate_to_pool(self, username: str, to_pool: str, rc: int) -> Dict[str, Any]:
+    def delegate_to_pool(self, username: str, to_pool: str, rc: int) -> dict[str, Any]:
         """Set a slot to receive RC from a pool
 
         :param str username: user delegating rc to the pool

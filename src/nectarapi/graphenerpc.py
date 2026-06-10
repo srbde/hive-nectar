@@ -4,7 +4,7 @@ import json
 import logging
 import re
 import threading
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import httpx2
 from httpx2 import ConnectError as HttpxConnectError
@@ -32,9 +32,9 @@ log = logging.getLogger(__name__)
 
 
 _shared_httpx_client: httpx2.Client | None = None
-_proxy_clients: Dict[str, httpx2.Client] = {}
+_proxy_clients: dict[str, httpx2.Client] = {}
 _shared_async_httpx_client: httpx2.AsyncClient | None = None
-_proxy_async_clients: Dict[str, httpx2.AsyncClient] = {}
+_proxy_async_clients: dict[str, httpx2.AsyncClient] = {}
 _client_lock = threading.Lock()
 
 
@@ -73,7 +73,7 @@ def _cleanup_shared_client() -> None:
 atexit.register(_cleanup_shared_client)
 
 
-def shared_httpx_client(proxy: Optional[str] = None) -> httpx2.Client:
+def shared_httpx_client(proxy: str | None = None) -> httpx2.Client:
     """
     Return a process-wide httpx client with connection pooling.
 
@@ -93,7 +93,7 @@ def shared_httpx_client(proxy: Optional[str] = None) -> httpx2.Client:
     return _shared_httpx_client
 
 
-def shared_async_httpx_client(proxy: Optional[str] = None) -> httpx2.AsyncClient:
+def shared_async_httpx_client(proxy: str | None = None) -> httpx2.AsyncClient:
     """
     Return a process-wide async httpx client with connection pooling.
 
@@ -131,9 +131,9 @@ class GrapheneRPC:
 
     def __init__(
         self,
-        urls: Union[str, List[str]],
-        user: Optional[str] = None,
-        password: Optional[str] = None,
+        urls: str | list[str],
+        user: str | None = None,
+        password: str | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -172,7 +172,7 @@ class GrapheneRPC:
         self.user = user
         self.password = password
         self.url = None
-        self.session: Optional[httpx2.Client] = None
+        self.session: httpx2.Client | None = None
         self.rpc_queue = []
         if kwargs.get("autoconnect", True):
             self.rpcconnect()
@@ -234,7 +234,7 @@ class GrapheneRPC:
                 self.nodes.reset_error_cnt_call()
                 log.debug("Trying to connect to node %s" % self.url)
                 self.ws = None
-                self._proxy: Optional[str] = None
+                self._proxy: str | None = None
                 if self.use_tor:
                     self._proxy = "socks5h://localhost:9050"
                 # Use a custom failover transport if multiple nodes exist.
@@ -291,7 +291,7 @@ class GrapheneRPC:
         auth: httpx2.Auth | None = None
         if self.user is not None and self.password is not None:
             auth = httpx2.BasicAuth(self.user, self.password)
-        post_kwargs: Dict[str, Any] = {
+        post_kwargs: dict[str, Any] = {
             "content": payload,
             "headers": self.headers,
             "timeout": self.timeout,
@@ -323,7 +323,7 @@ class GrapheneRPC:
         version_list = network_version.split(".")
         return int(int(version_list[0]) * 1e8 + int(version_list[1]) * 1e4 + int(version_list[2]))
 
-    def get_network(self, props: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def get_network(self, props: dict[str, Any] | None = None) -> dict[str, Any]:
         """
         Detects and returns the network/chain configuration for the connected node.
 
@@ -453,7 +453,7 @@ class GrapheneRPC:
         else:
             return highest_version_chain
 
-    def _check_for_server_error(self, reply: Dict[str, Any]) -> None:
+    def _check_for_server_error(self, reply: dict[str, Any]) -> None:
         """Checks for server error message in reply"""
         reply_str = str(reply)
         if re.search("Internal Server Error", reply_str) or re.search(r"\b500\b", reply_str):
@@ -523,7 +523,7 @@ class GrapheneRPC:
         else:
             raise RPCError("Client returned invalid format. Expected JSON!")
 
-    def rpcexec(self, payload: Union[Dict[str, Any], List[Dict[str, Any]]]) -> Any:
+    def rpcexec(self, payload: dict[str, Any] | list[dict[str, Any]]) -> Any:
         """
         Execute the given JSON-RPC payload against the currently selected node and return the RPC result.
 
@@ -669,9 +669,9 @@ class AsyncGrapheneRPC(GrapheneRPC):
 
     def __init__(
         self,
-        urls: Union[str, List[str]],
-        user: Optional[str] = None,
-        password: Optional[str] = None,
+        urls: str | list[str],
+        user: str | None = None,
+        password: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(urls, user, password, **kwargs)
@@ -731,7 +731,7 @@ class AsyncGrapheneRPC(GrapheneRPC):
         auth: httpx2.Auth | None = None
         if self.user is not None and self.password is not None:
             auth = httpx2.BasicAuth(self.user, self.password)
-        post_kwargs: Dict[str, Any] = {
+        post_kwargs: dict[str, Any] = {
             "content": payload,
             "headers": self.headers,
             "timeout": self.timeout,
@@ -744,7 +744,7 @@ class AsyncGrapheneRPC(GrapheneRPC):
         response.raise_for_status()
         return response
 
-    async def rpcexec_async(self, payload: Union[Dict[str, Any], List[Dict[str, Any]]]) -> Any:
+    async def rpcexec_async(self, payload: dict[str, Any] | list[dict[str, Any]]) -> Any:
         """
         Execute the given JSON-RPC payload asynchronously.
         """

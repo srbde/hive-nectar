@@ -3,7 +3,7 @@ import logging
 import re
 from binascii import hexlify, unhexlify
 from datetime import datetime, timezone
-from typing import Any, Optional, Union
+from typing import Any
 
 from nectar.account import Account
 from nectar.exceptions import (
@@ -49,7 +49,7 @@ timestamp={meta[timestamp]}
 {MESSAGE_SPLIT[3]}"""
 
     def __init__(
-        self, message: str, blockchain_instance: Optional[Any] = None, *args: Any, **kwargs: Any
+        self, message: str, blockchain_instance: Any | None = None, *args: Any, **kwargs: Any
     ) -> None:
         """
         Initialize the message handler, normalize line endings, and set up signing context.
@@ -69,7 +69,7 @@ timestamp={meta[timestamp]}
         self.meta = None
         self.plain_message = None
 
-    def sign(self, account: Optional[Union[str, Account]] = None, **kwargs: Any) -> Any:
+    def sign(self, account: str | Account | None = None, **kwargs: Any) -> Any:
         """Sign a message with an account's memo key
         :param str account: (optional) the account that owns the bet
             (defaults to ``default_account``)
@@ -192,7 +192,7 @@ class MessageV2:
     """Allow to sign and verify Messages that are sigend with a private key"""
 
     def __init__(
-        self, message: str, blockchain_instance: Optional[Any] = None, *args: Any, **kwargs: Any
+        self, message: str, blockchain_instance: Any | None = None, *args: Any, **kwargs: Any
     ) -> None:
         """
         Initialize the message handler and set up default signing context.
@@ -214,7 +214,7 @@ class MessageV2:
         self.meta = None
         self.plain_message = None
 
-    def sign(self, account: Optional[Union[str, Account]] = None, **kwargs: Any) -> Any:
+    def sign(self, account: str | Account | None = None, **kwargs: Any) -> Any:
         """Sign a message with an account's memo key
         :param str account: (optional) the account that owns the bet
             (defaults to ``default_account``)
@@ -303,7 +303,7 @@ class MessageV2:
         signed_target = json.dumps(self.message.get("payload"), separators=(",", ":"))
         signed_actual = self.message.get("signed")
         assert signed_target == signed_actual, (
-            "payload doesn't match signed message: \n{}\n{}".format(signed_target, signed_actual)
+            f"payload doesn't match signed message: \n{signed_target}\n{signed_actual}"
         )
 
         # Reformat message
@@ -363,7 +363,7 @@ class Message(MessageV1, MessageV2):
                 )
         raise ValueError("No Decoder accepted the message")
 
-    def sign(self, account: Optional[Union[str, Account]] = None, **kwargs: Any) -> Any:
+    def sign(self, account: str | Account | None = None, **kwargs: Any) -> Any:
         for _format in self.supported_formats:
             try:
                 return _format.sign(self, account=account, **kwargs)

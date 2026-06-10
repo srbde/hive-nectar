@@ -1,7 +1,7 @@
-from typing import Any, Dict
+from typing import Any
 
 default_prefix: str = "STM"
-known_chains: Dict[str, Dict[str, Any]] = {
+known_chains: dict[str, dict[str, Any]] = {
     "HIVE": {
         "chain_id": "beeab0de00000000000000000000000000000000000000000000000000000000",
         "min_version": "0.24.0",

@@ -2,7 +2,7 @@ import json
 import logging
 import threading
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx2
 
@@ -31,14 +31,14 @@ REQUEST_TIMEOUT = 10  # seconds
 CACHE_DURATION = 300  # 5 minutes cache
 
 # Global cache for node data
-_cached_nodes: Optional[List[Dict[str, Any]]] = None
+_cached_nodes: list[dict[str, Any]] | None = None
 _cache_timestamp: float = 0
 _cache_lock = threading.Lock()
 
 
-def extract_nodes_from_raw(raw: Any, source: str) -> Optional[List[Dict[str, Any]]]:
+def extract_nodes_from_raw(raw: Any, source: str) -> list[dict[str, Any]] | None:
     if isinstance(raw, list):
-        nodes: List[Dict[str, Any]] = []
+        nodes: list[dict[str, Any]] = []
         for item in raw:
             if isinstance(item, dict):
                 nodes.append(item)
@@ -50,7 +50,7 @@ def extract_nodes_from_raw(raw: Any, source: str) -> Optional[List[Dict[str, Any
         return None
 
 
-def fetch_beacon_nodes(force: bool = False) -> Optional[List[Dict[str, Any]]]:
+def fetch_beacon_nodes(force: bool = False) -> list[dict[str, Any]] | None:
     """Fetch node list from PeakD beacon API with caching.
 
     Returns:
@@ -206,7 +206,7 @@ class NodeList(list):
         not_working: bool = False,
         normal: bool = False,
         appbase: bool = True,
-    ) -> List[str]:
+    ) -> list[str]:
         """Return a list of node URLs filtered and sorted by score.
 
         Args:
@@ -269,7 +269,7 @@ class NodeList(list):
         not_working: bool = False,
         wss: bool = True,
         https: bool = True,
-    ) -> List[str]:
+    ) -> list[str]:
         """Return a list of Hive node URLs filtered and ordered by score.
 
         Args:
@@ -291,7 +291,7 @@ class NodeList(list):
             normal=False,
         )
 
-    def get_testnet(self, testnet: bool = True, testnetdev: bool = False) -> List[str]:
+    def get_testnet(self, testnet: bool = True, testnetdev: bool = False) -> list[str]:
         """Return a list of testnet node URLs (currently unavailable).
 
         Note: The PeakD beacon API does not provide testnet nodes. This method
@@ -342,7 +342,7 @@ class NodeList(list):
         else:
             self._refresh_nodes()
 
-    def update(self, node_list: List[str]) -> None:
+    def update(self, node_list: list[str]) -> None:
         """Update node list (not implemented with beacon API).
 
         Args:
@@ -352,8 +352,8 @@ class NodeList(list):
         self._refresh_nodes()
 
     def get_node_answer_time(
-        self, node_list: Optional[List[str]] = None, verbose: bool = False
-    ) -> List[Dict[str, float]]:
+        self, node_list: list[str] | None = None, verbose: bool = False
+    ) -> list[dict[str, float]]:
         """Get node response times (deprecated with beacon API).
 
         The beacon API already provides performance scoring, so this method

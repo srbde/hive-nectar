@@ -1,5 +1,5 @@
 from decimal import ROUND_DOWN, Decimal
-from typing import TYPE_CHECKING, Any, Tuple, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from nectar.blockchain.models.asset import Asset
 from nectar.instance import shared_blockchain_instance
@@ -24,7 +24,7 @@ def check_asset(other: Any, self: Any, hv: Any) -> None:
             raise AssertionError()
 
 
-def quantize(amount: Union[str, int, float, Decimal], precision: int) -> Decimal:
+def quantize(amount: str | int | float | Decimal, precision: int) -> Decimal:
     # make sure amount is decimal and has the asset precision
     amount = Decimal(amount)
     places = Decimal(10) ** (-precision)
@@ -86,7 +86,7 @@ class Amount(dict):
     def __init__(
         self,
         amount: Union[str, int, float, Decimal, list, dict, "Amount"],
-        asset: Union[str, Asset, None] = None,
+        asset: str | Asset | None = None,
         fixed_point_arithmetic: bool = False,
         new_appbase_format: bool = True,
         blockchain_instance: Any = None,
@@ -248,7 +248,7 @@ class Amount(dict):
         """Returns the symbol of the asset"""
         return self["symbol"]
 
-    def as_tuple(self) -> Tuple[float, str]:
+    def as_tuple(self) -> tuple[float, str]:
         return float(self), self.symbol
 
     @property
@@ -264,7 +264,7 @@ class Amount(dict):
             self["asset"] = Asset(self["symbol"], blockchain_instance=self.blockchain)
         return self["asset"]
 
-    def json(self) -> Union[str, dict, list]:
+    def json(self) -> str | dict | list:
         asset_obj = self["asset"]
         if isinstance(asset_obj, Asset):
             asset_precision = asset_obj["precision"]
@@ -436,7 +436,7 @@ class Amount(dict):
         self["amount"] = quantize(self["amount"], self["asset"]["precision"])
         return self
 
-    def __idiv__(self, other: Union[int, float, Decimal]) -> "Amount":
+    def __idiv__(self, other: int | float | Decimal) -> "Amount":
         """
         In-place division: divide this Amount by another Amount or numeric value and return self.
 
@@ -465,7 +465,7 @@ class Amount(dict):
         self["amount"] = quantize(self["amount"], self["asset"]["precision"])
         return self
 
-    def __imod__(self, other: Union[int, float, Decimal]) -> "Amount":
+    def __imod__(self, other: int | float | Decimal) -> "Amount":
         if isinstance(other, Amount):
             check_asset(other["asset"], self["asset"], self.blockchain)
             self["amount"] %= other["amount"]

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Union, cast
+from typing import Any, cast
 
 from nectar.blockchainobject import BlockchainObject
 from nectar.exceptions import AssetDoesNotExistsException
@@ -22,7 +22,7 @@ class Asset(BlockchainObject):
 
     def __init__(
         self,
-        asset: Union[str, int],
+        asset: str | int,
         lazy: bool = False,
         full: bool = False,
         blockchain_instance: Any = None,
@@ -41,7 +41,7 @@ class Asset(BlockchainObject):
             from nectargraphenebase.chains import known_chains
 
             self.chain_params = known_chains["HIVE"]
-        cast(Dict[str, Any], self)["asset"] = ""
+        cast(dict[str, Any], self)["asset"] = ""
         found_asset = False
 
         # Store original identifier before it gets overwritten
@@ -58,10 +58,10 @@ class Asset(BlockchainObject):
 
         for asset in self.chain_params["chain_assets"]:
             if original_identifier in [asset["symbol"], str(asset["asset"]), str(asset["id"])]:
-                cast(Dict[str, Any], self)["asset"] = asset["asset"]
-                cast(Dict[str, Any], self)["precision"] = asset["precision"]
-                cast(Dict[str, Any], self)["id"] = asset["id"]
-                cast(Dict[str, Any], self)["symbol"] = asset["symbol"]
+                cast(dict[str, Any], self)["asset"] = asset["asset"]
+                cast(dict[str, Any], self)["precision"] = asset["precision"]
+                cast(dict[str, Any], self)["id"] = asset["id"]
+                cast(dict[str, Any], self)["symbol"] = asset["symbol"]
                 found_asset = True
                 break
         if not found_asset:
@@ -71,52 +71,52 @@ class Asset(BlockchainObject):
 
     @property
     def symbol(self) -> str:
-        return cast(Dict[str, Any], self)["symbol"]
+        return cast(dict[str, Any], self)["symbol"]
 
     @property
     def asset(self) -> str:
-        return cast(Dict[str, Any], self)["asset"]
+        return cast(dict[str, Any], self)["asset"]
 
     @property
     def precision(self) -> int:
-        return cast(Dict[str, Any], self)["precision"]
+        return cast(dict[str, Any], self)["precision"]
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Asset):
             return (
-                cast(Dict[str, Any], self)["symbol"] == other["symbol"]
-                and cast(Dict[str, Any], self)["asset"] == other["asset"]
-                and cast(Dict[str, Any], self)["precision"] == other["precision"]
+                cast(dict[str, Any], self)["symbol"] == other["symbol"]
+                and cast(dict[str, Any], self)["asset"] == other["asset"]
+                and cast(dict[str, Any], self)["precision"] == other["precision"]
             )
         if isinstance(other, dict):
             symbol = other["symbol"] if "symbol" in other else None
             asset = other["asset"] if "asset" in other else None
             precision = other["precision"] if "precision" in other else None
             return (
-                cast(Dict[str, Any], self)["symbol"] == symbol
-                and cast(Dict[str, Any], self)["asset"] == asset
-                and cast(Dict[str, Any], self)["precision"] == precision
+                cast(dict[str, Any], self)["symbol"] == symbol
+                and cast(dict[str, Any], self)["asset"] == asset
+                and cast(dict[str, Any], self)["precision"] == precision
             )
         if isinstance(other, (str, int)):
-            return cast(Dict[str, Any], self)["symbol"] == other
+            return cast(dict[str, Any], self)["symbol"] == other
         return False
 
     def __ne__(self, other: object) -> bool:
         if isinstance(other, Asset):
             return (
-                cast(Dict[str, Any], self)["symbol"] != other["symbol"]
-                or cast(Dict[str, Any], self)["asset"] != other["asset"]
-                or cast(Dict[str, Any], self)["precision"] != other["precision"]
+                cast(dict[str, Any], self)["symbol"] != other["symbol"]
+                or cast(dict[str, Any], self)["asset"] != other["asset"]
+                or cast(dict[str, Any], self)["precision"] != other["precision"]
             )
         if isinstance(other, dict):
             symbol = other["symbol"] if "symbol" in other else None
             asset = other["asset"] if "asset" in other else None
             precision = other["precision"] if "precision" in other else None
             return (
-                cast(Dict[str, Any], self)["symbol"] != symbol
-                or cast(Dict[str, Any], self)["asset"] != asset
-                or cast(Dict[str, Any], self)["precision"] != precision
+                cast(dict[str, Any], self)["symbol"] != symbol
+                or cast(dict[str, Any], self)["asset"] != asset
+                or cast(dict[str, Any], self)["precision"] != precision
             )
         if isinstance(other, (str, int)):
-            return cast(Dict[str, Any], self)["symbol"] != other
+            return cast(dict[str, Any], self)["symbol"] != other
         return True

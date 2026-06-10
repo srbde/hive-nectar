@@ -2,7 +2,7 @@ import os
 import random
 import struct
 from binascii import hexlify, unhexlify
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any
 
 from nectar.account import Account
 from nectar.exceptions import MissingKeyError
@@ -136,9 +136,9 @@ class Memo:
 
     def __init__(
         self,
-        from_account: Optional[Union[str, Account, PrivateKey]] = None,
-        to_account: Optional[Union[str, Account, PublicKey]] = None,
-        blockchain_instance: Optional[Any] = None,
+        from_account: str | Account | PrivateKey | None = None,
+        to_account: str | Account | PublicKey | None = None,
+        blockchain_instance: Any | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -201,8 +201,8 @@ class Memo:
         memo: str,
         bts_encrypt: bool = False,
         return_enc_memo_only: bool = False,
-        nonce: Optional[str] = None,
-    ) -> Optional[Union[str, Dict[str, Any]]]:
+        nonce: str | None = None,
+    ) -> str | dict[str, Any] | None:
         """Encrypt a memo
 
         :param str memo: clear text memo message
@@ -319,12 +319,12 @@ class Memo:
                     encd = aes.encrypt(data)
                     fout.write(encd)
 
-    def extract_decrypt_memo_data(self, memo: str) -> Tuple[Any, Any, Any]:
+    def extract_decrypt_memo_data(self, memo: str) -> tuple[Any, Any, Any]:
         """Returns information about an encrypted memo"""
         from_key, to_key, nonce, check, cipher = BtsMemo.extract_memo_data(memo)
         return from_key, to_key, nonce
 
-    def decrypt(self, memo: Union[str, Dict[str, Any]]) -> Optional[str]:
+    def decrypt(self, memo: str | dict[str, Any]) -> str | None:
         """
         Decrypt a memo message produced for a transfer.
 
@@ -435,7 +435,7 @@ class Memo:
                 message,
             )
 
-    def decrypt_binary(self, infile: str, outfile: str, buffer_size: int = 2048) -> Dict[str, Any]:
+    def decrypt_binary(self, infile: str, outfile: str, buffer_size: int = 2048) -> dict[str, Any]:
         """Decrypt a binary file
 
         :param str infile: encrypted binary file

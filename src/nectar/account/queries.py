@@ -2395,7 +2395,7 @@ class AccountQueriesMixin:
             t.add_row(
                 [
                     "Token Power",
-                    "{:.2f} {}".format(self.get_token_power(), self.blockchain.token_symbol),
+                    f"{self.get_token_power():.2f} {self.blockchain.token_symbol}",
                 ]
             )
             t.add_row(
@@ -2418,7 +2418,7 @@ class AccountQueriesMixin:
                 t.add_row(
                     [
                         "used/allocated Bandwidth",
-                        "({:.0f} kb of {:.0f} mb)".format(used_kb, allocated_mb),
+                        f"({used_kb:.0f} kb of {allocated_mb:.0f} mb)",
                     ]
                 )
             if rc_mana is not None:
@@ -2548,7 +2548,7 @@ class AccountQueriesMixin:
             if False and bandwidth["allocated"] > 0:
                 ret += "--- Bandwidth ---\n"
                 ret += "Remaining: %.2f %%" % (remaining)
-                ret += " ({:.0f} kb of {:.0f} mb)\n".format(used_kb, allocated_mb)
+                ret += f" ({used_kb:.0f} kb of {allocated_mb:.0f} mb)\n"
             if rc_mana is not None:
                 if isinstance(rc, dict):
                     max_rc = rc.get("max_rc", 0)

@@ -2,7 +2,8 @@ import hashlib
 import logging
 import struct
 from binascii import hexlify, unhexlify
-from typing import Any, Callable, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 import coincurve
 from coincurve._libsecp256k1 import ffi  # type: ignore
@@ -13,7 +14,7 @@ from .account import PrivateKey, PublicKey
 log = logging.getLogger(__name__)
 
 
-def _is_canonical(sig: Union[bytes, bytearray]) -> bool:
+def _is_canonical(sig: bytes | bytearray) -> bool:
     """
     Return True if a 64-byte ECDSA signature (R || S) is in canonical form.
 
@@ -56,8 +57,8 @@ def compressedPubkey(pk: Any) -> bytes:
 
 
 def recover_public_key(
-    digest: bytes, signature: bytes, i: int, message: Optional[bytes] = None
-) -> Optional[coincurve.PublicKey]:
+    digest: bytes, signature: bytes, i: int, message: bytes | None = None
+) -> coincurve.PublicKey | None:
     """
     Recover the secp256k1 public key from an ECDSA signature and message hash.
 
@@ -87,11 +88,11 @@ def recover_public_key(
 
 
 def recoverPubkeyParameter(
-    message: Optional[Union[str, bytes]],
+    message: str | bytes | None,
     digest: bytes,
     signature: bytes,
     pubkey: Any,
-) -> Optional[int]:
+) -> int | None:
     """
     Determine the ECDSA recovery parameter (0–3) that, when used with the given digest and 64-byte signature (R||S), reproduces the provided public key.
 
@@ -117,7 +118,7 @@ def recoverPubkeyParameter(
     return None
 
 
-def sign_message(message: Union[str, bytes], wif: str, hashfn: Callable = hashlib.sha256) -> bytes:
+def sign_message(message: str | bytes, wif: str, hashfn: Callable = hashlib.sha256) -> bytes:
     """
     Sign a message using a private key in Wallet Import Format (WIF) and return a compact, canonical ECDSA signature.
 
@@ -177,11 +178,11 @@ def sign_message(message: Union[str, bytes], wif: str, hashfn: Callable = hashli
 
 
 def verify_message(
-    message: Union[str, bytes],
-    signature: Union[str, bytes],
+    message: str | bytes,
+    signature: str | bytes,
     hashfn: Callable = hashlib.sha256,
-    recover_parameter: Optional[int] = None,
-) -> Optional[bytes]:
+    recover_parameter: int | None = None,
+) -> bytes | None:
     """
     Verify an ECDSA secp256k1 signature against a message and return the signer's compressed public key.
 

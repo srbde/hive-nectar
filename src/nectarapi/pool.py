@@ -2,7 +2,6 @@ import asyncio
 import logging
 import threading
 import time
-from typing import List
 from urllib.parse import urlparse
 
 import httpx2
@@ -29,7 +28,7 @@ class RPCNode:
 
 
 class NodePoolManager:
-    def __init__(self, node_urls: List[str], max_lag: int = 15) -> None:
+    def __init__(self, node_urls: list[str], max_lag: int = 15) -> None:
         if not node_urls:
             node_urls = ["https://api.hive.blog"]
         self.nodes = [RPCNode(url) for url in node_urls]

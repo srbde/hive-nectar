@@ -306,7 +306,7 @@ def buy(amount, asset, price, account, orderid, export):
     else:
         p = Price(
             float(price),
-            "{}:{}".format(hv.backed_token_symbol, hv.token_symbol),
+            f"{hv.backed_token_symbol}:{hv.token_symbol}",
             blockchain_instance=hv,
         )
     if not unlock_wallet(hv):
@@ -367,7 +367,7 @@ def sell(amount, asset, price, account, orderid, export):
     else:
         p = Price(
             float(price),
-            "{}:{}".format(hv.backed_token_symbol, hv.token_symbol),
+            f"{hv.backed_token_symbol}:{hv.token_symbol}",
             blockchain_instance=hv,
         )
     if not unlock_wallet(hv):

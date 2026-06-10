@@ -213,12 +213,12 @@ class Testcases(unittest.TestCase):
     def test_price(self, node_param):
         if node_param == "instance":
             set_shared_blockchain_instance(self.bts)
-            o = Price(10.0, "{}/{}".format(self.bts.token_symbol, self.bts.backed_token_symbol))
+            o = Price(10.0, f"{self.bts.token_symbol}/{self.bts.backed_token_symbol}")
             self.assertIn(o.blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
                 Price(
                     10.0,
-                    "{}/{}".format(self.bts.token_symbol, self.bts.backed_token_symbol),
+                    f"{self.bts.token_symbol}/{self.bts.backed_token_symbol}",
                     blockchain_instance=Hive(
                         node="https://abc.d", autoconnect=False, num_retries=1
                     ),
@@ -230,12 +230,12 @@ class Testcases(unittest.TestCase):
             hv = self.bts
             o = Price(
                 10.0,
-                "{}/{}".format(self.bts.token_symbol, self.bts.backed_token_symbol),
+                f"{self.bts.token_symbol}/{self.bts.backed_token_symbol}",
                 blockchain_instance=hv,
             )
             self.assertIn(o.blockchain.rpc.url, self.urls)
             with self.assertRaises(RPCConnection):
-                Price(10.0, "{}/{}".format(self.bts.token_symbol, self.bts.backed_token_symbol))
+                Price(10.0, f"{self.bts.token_symbol}/{self.bts.backed_token_symbol}")
 
     @parameterized.expand([("instance"), ("hive")])
     def test_vote(self, node_param):

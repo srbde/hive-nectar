@@ -1,7 +1,7 @@
 import logging
 import re
 import time
-from typing import Any, List, Optional, Union
+from typing import Any, Union
 
 from .exceptions import CallRetriesReached, NumRetriesReached
 
@@ -23,7 +23,7 @@ class Nodes(list):
 
     def __init__(
         self,
-        urls: Union[str, "Nodes", List[Any], tuple, set, None],
+        urls: Union[str, "Nodes", list[Any], tuple, set, None],
         num_retries: int,
         num_retries_call: int,
     ) -> None:
@@ -35,7 +35,7 @@ class Nodes(list):
         self.pool_manager = None  # Set before __next__ is ever called
         self.set_node_urls(urls)
 
-    def set_node_urls(self, urls: Union[str, "Nodes", List[Any], tuple, set, None]) -> None:
+    def set_node_urls(self, urls: Union[str, "Nodes", list[Any], tuple, set, None]) -> None:
         if isinstance(urls, str):
             url_list = re.split(r",|;", urls)
             if not url_list:
@@ -80,12 +80,12 @@ class Nodes(list):
 
     next = __next__
 
-    def export_working_nodes(self) -> List[str]:
+    def export_working_nodes(self) -> list[str]:
         if self.pool_manager is None:
             return []
         return [n.url for n in self.pool_manager.nodes if n.healthy]
 
-    def get_nodes(self) -> List[str]:
+    def get_nodes(self) -> list[str]:
         if self.pool_manager is None:
             return [self[i].url for i in range(len(self))]
         return [n.url for n in self.pool_manager.nodes]
@@ -180,7 +180,7 @@ class Nodes(list):
 
     def sleep_and_check_retries(
         self,
-        errorMsg: Optional[str] = None,
+        errorMsg: str | None = None,
         sleep: bool = True,
         call_retry: bool = False,
         showMsg: bool = True,
@@ -191,7 +191,7 @@ class Nodes(list):
         )
 
         if errorMsg:
-            log.warning("Error: {}".format(errorMsg))
+            log.warning(f"Error: {errorMsg}")
 
         if call_retry:
             cnt = self.error_cnt_call

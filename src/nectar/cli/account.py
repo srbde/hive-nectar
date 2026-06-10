@@ -531,7 +531,7 @@ def claimaccount(creator, fee, number, export):
     if not unlock_wallet(hv):
         return
     creator = Account(creator, blockchain_instance=hv)
-    fee = Amount("{:.3f} {}".format(float(fee), hv.token_symbol), blockchain_instance=hv)
+    fee = Amount(f"{float(fee):.3f} {hv.token_symbol}", blockchain_instance=hv)
     tx = None
     if float(fee) > 0:
         tx = hv.claim_account(creator, fee=fee)
@@ -1078,7 +1078,7 @@ def witnessupdate(
     if account_creation_fee is not None:
         props["account_creation_fee"] = str(
             Amount(
-                "{:.3f} {}".format(float(account_creation_fee), hv.token_symbol),
+                f"{float(account_creation_fee):.3f} {hv.token_symbol}",
                 blockchain_instance=hv,
             )
         )
@@ -1162,7 +1162,7 @@ def witnesscreate(
         return
     props = {
         "account_creation_fee": Amount(
-            "{:.3f} {}".format(float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
+            f"{float(account_creation_fee):.3f} {hv.token_symbol}", blockchain_instance=hv
         ),
         "maximum_block_size": int(maximum_block_size),
         "hbd_interest_rate": int(hbd_interest_rate * 100),
@@ -1202,7 +1202,7 @@ def witnessproperties(
     props = {}
     if account_creation_fee is not None:
         props["account_creation_fee"] = Amount(
-            "{:.3f} {}".format(float(account_creation_fee), hv.token_symbol), blockchain_instance=hv
+            f"{float(account_creation_fee):.3f} {hv.token_symbol}", blockchain_instance=hv
         )
     if account_subsidy_budget is not None:
         props["account_subsidy_budget"] = int(account_subsidy_budget)
@@ -1290,7 +1290,7 @@ def witnessfeed(witness, wif, base, quote, support_peg):
         else:
             base = Amount(base, hv.backed_token_symbol, blockchain_instance=hv)
     new_price = Price(base=base, quote=quote, blockchain_instance=hv)
-    print("New price {:.3f} (base: {}, quote {})".format(float(new_price), base, quote))
+    print(f"New price {float(new_price):.3f} (base: {base}, quote {quote})")
     if wif is not None:
         props = {"hbd_exchange_rate": new_price}
         tx = hv.witness_set_properties(wif, witness["owner"], props)
@@ -1695,9 +1695,9 @@ def curation(
                         + voter
                         + [
                             "%.1f min" % row[1],
-                            "{:.3f} {}".format(float(row[2]), hv.backed_token_symbol),
-                            "{:.3f} {}".format(float(row[3]), hv.backed_token_symbol),
-                            "{:.3f} {}".format(row[4], HP_symbol),
+                            f"{float(row[2]):.3f} {hv.backed_token_symbol}",
+                            f"{float(row[3]):.3f} {hv.backed_token_symbol}",
+                            f"{row[4]:.3f} {HP_symbol}",
                             "%.1f %%" % (row[5]),
                         ]
                     )
@@ -1716,9 +1716,9 @@ def curation(
                     sum_line
                     + [
                         "%.1f min" % highest_vote[1],
-                        "{:.3f} {}".format(float(highest_vote[2]), hv.backed_token_symbol),
-                        "{:.3f} {}".format(float(highest_vote[3]), hv.backed_token_symbol),
-                        "{:.3f} {}".format(highest_vote[4], HP_symbol),
+                        f"{float(highest_vote[2]):.3f} {hv.backed_token_symbol}",
+                        f"{float(highest_vote[3]):.3f} {hv.backed_token_symbol}",
+                        f"{highest_vote[4]:.3f} {HP_symbol}",
                         "%.1f %%" % (highest_vote[5]),
                     ]
                 )
@@ -1727,9 +1727,9 @@ def curation(
                     sum_line
                     + [
                         "%.1f min" % max_curation[1],
-                        "{:.3f} {}".format(float(max_curation[2]), hv.backed_token_symbol),
-                        "{:.3f} {}".format(float(max_curation[3]), hv.backed_token_symbol),
-                        "{:.3f} {}".format(max_curation[4], HP_symbol),
+                        f"{float(max_curation[2]):.3f} {hv.backed_token_symbol}",
+                        f"{float(max_curation[3]):.3f} {hv.backed_token_symbol}",
+                        f"{max_curation[4]:.3f} {HP_symbol}",
                         "%.1f %%" % (max_curation[5]),
                     ]
                 )
@@ -1738,9 +1738,9 @@ def curation(
                     sum_line
                     + [
                         "-",
-                        "{:.3f} {}".format(sum_curation[0], hv.backed_token_symbol),
-                        "{:.3f} {}".format(sum_curation[1], hv.backed_token_symbol),
-                        "{:.3f} {}".format(sum_curation[2], HP_symbol),
+                        f"{sum_curation[0]:.3f} {hv.backed_token_symbol}",
+                        f"{sum_curation[1]:.3f} {hv.backed_token_symbol}",
+                        f"{sum_curation[2]:.3f} {HP_symbol}",
                         "%.2f %%" % curation_sum_percentage,
                     ]
                 )
@@ -1894,7 +1894,7 @@ def rewards(
                     "Permlink",
                     "Payout",
                     hv.backed_token_symbol,
-                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
+                    f"{hv.token_symbol[0]}P + {hv.token_symbol}",
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -1906,7 +1906,7 @@ def rewards(
                     "Title",
                     "Payout",
                     hv.backed_token_symbol,
-                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
+                    f"{hv.token_symbol[0]}P + {hv.token_symbol}",
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -1917,7 +1917,7 @@ def rewards(
                     "Author",
                     "Payout",
                     hv.backed_token_symbol,
-                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
+                    f"{hv.token_symbol[0]}P + {hv.token_symbol}",
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -1928,7 +1928,7 @@ def rewards(
                     "Permlink",
                     "Payout",
                     hv.backed_token_symbol,
-                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
+                    f"{hv.token_symbol[0]}P + {hv.token_symbol}",
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -1939,7 +1939,7 @@ def rewards(
                     "Title",
                     "Payout",
                     hv.backed_token_symbol,
-                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
+                    f"{hv.token_symbol[0]}P + {hv.token_symbol}",
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -1949,7 +1949,7 @@ def rewards(
                 [
                     "Received",
                     hv.backed_token_symbol,
-                    "{}P + {}".format(hv.token_symbol[0], hv.token_symbol),
+                    f"{hv.token_symbol[0]}P + {hv.token_symbol}",
                     "Liquid USD",
                     "Invested USD",
                 ]
@@ -2119,8 +2119,8 @@ def rewards(
                     "Sum",
                     "-",
                     "-",
-                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
-                    "{:.2f} {}P".format(sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
+                    f"{sum_reward[0]:.2f} {hv.backed_token_symbol}",
+                    f"{sum_reward[1] + sum_reward[2]:.2f} {hv.token_symbol[0]}P",
                     "%.2f $" % (sum_reward[3]),
                     "%.2f $" % (sum_reward[4]),
                 ]
@@ -2130,8 +2130,8 @@ def rewards(
             t.add_row(
                 [
                     "Sum",
-                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
-                    "{:.2f} {}P".format(sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
+                    f"{sum_reward[0]:.2f} {hv.backed_token_symbol}",
+                    f"{sum_reward[1] + sum_reward[2]:.2f} {hv.token_symbol[0]}P",
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
                 ]
@@ -2142,8 +2142,8 @@ def rewards(
                 [
                     "Sum",
                     "-",
-                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
-                    "{:.2f} {}P".format(sum_reward[1] + sum_reward[2], hv.token_symbol[0]),
+                    f"{sum_reward[0]:.2f} {hv.backed_token_symbol}",
+                    f"{sum_reward[1] + sum_reward[2]:.2f} {hv.token_symbol[0]}P",
                     "%.2f $" % (sum_reward[3]),
                     "%.2f $" % (sum_reward[4]),
                 ]
@@ -2446,8 +2446,8 @@ def pending(
                     "Sum",
                     "-",
                     "-",
-                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
-                    "{:.2f} {}".format(sum_reward[1], sp_symbol),
+                    f"{sum_reward[0]:.2f} {hv.backed_token_symbol}",
+                    f"{sum_reward[1]:.2f} {sp_symbol}",
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
                 ]
@@ -2457,8 +2457,8 @@ def pending(
             t.add_row(
                 [
                     "Sum",
-                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
-                    "{:.2f} {}".format(sum_reward[1], sp_symbol),
+                    f"{sum_reward[0]:.2f} {hv.backed_token_symbol}",
+                    f"{sum_reward[1]:.2f} {sp_symbol}",
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
                 ]
@@ -2469,8 +2469,8 @@ def pending(
                 [
                     "Sum",
                     "-",
-                    "{:.2f} {}".format(sum_reward[0], hv.backed_token_symbol),
-                    "{:.2f} {}".format(sum_reward[1], sp_symbol),
+                    f"{sum_reward[0]:.2f} {hv.backed_token_symbol}",
+                    f"{sum_reward[1]:.2f} {sp_symbol}",
                     "%.2f $" % (sum_reward[2]),
                     "%.2f $" % (sum_reward[3]),
                 ]

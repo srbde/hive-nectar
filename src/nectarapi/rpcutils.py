@@ -1,6 +1,7 @@
 import json
 import logging
-from typing import Any, Dict, Iterable, List, Union
+from collections.abc import Iterable
+from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -9,8 +10,8 @@ def get_query(
     request_id: int,
     api_name: str,
     name: str,
-    args: Union[Dict[str, Any], Iterable[Any], Any],
-) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    args: dict[str, Any] | Iterable[Any] | Any,
+) -> dict[str, Any] | list[dict[str, Any]]:
     """
     Build an appbase-style JSON-RPC request payload.
 
@@ -28,7 +29,7 @@ def get_query(
 
     # Pass through plain dict
     if isinstance(normalized_args, dict):
-        params: Union[Dict[str, Any], List[Any]] = json.loads(json.dumps(normalized_args))
+        params: dict[str, Any] | list[Any] = json.loads(json.dumps(normalized_args))
         return {
             "method": f"{api_name}.{name}",
             "params": params,
@@ -39,7 +40,7 @@ def get_query(
     if isinstance(normalized_args, list) and normalized_args:
         # Batch: list of dicts directly
         if len(normalized_args) > 1 and all(isinstance(item, dict) for item in normalized_args):
-            queries: List[Dict[str, Any]] = []
+            queries: list[dict[str, Any]] = []
             for entry in normalized_args:
                 queries.append(
                     {
@@ -59,7 +60,7 @@ def get_query(
             and normalized_args[0]
             and all(isinstance(item, dict) for item in normalized_args[0])
         ):
-            queries: List[Dict[str, Any]] = []
+            queries: list[dict[str, Any]] = []
             for entry in normalized_args[0]:
                 queries.append(
                     {

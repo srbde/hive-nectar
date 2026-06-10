@@ -1,8 +1,8 @@
-from typing import Any, Dict
+from typing import Any
 
 # Track shared httpx client alongside the shared Hive instance so callers that
 # construct Hive directly (e.g., Hive(keys=[...])) still reuse the same pool.
-_shared_transport: Dict[str, Any] = {}
+_shared_transport: dict[str, Any] = {}
 
 
 class SharedInstance:
@@ -65,7 +65,7 @@ def clear_cache() -> None:
     BlockchainObject.clear_cache()
 
 
-def set_shared_config(config: Dict[str, Any]) -> None:
+def set_shared_config(config: dict[str, Any]) -> None:
     """
     Set configuration for the shared Hive instance without creating the instance.
 

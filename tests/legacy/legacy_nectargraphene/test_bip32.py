@@ -1,7 +1,7 @@
 import binascii
 import unittest
 from binascii import unhexlify
-from typing import Optional, cast
+from typing import cast
 
 from nectargraphenebase.account import Mnemonic
 from nectargraphenebase.bip32 import BIP32_HARDEN, BIP32Key, parse_path
@@ -10,7 +10,7 @@ words = "news clever spot drama infant detail sword cover color throw foot prima
 
 
 class Testcases(unittest.TestCase):
-    def _require_child(self, key: Optional[BIP32Key]) -> BIP32Key:
+    def _require_child(self, key: BIP32Key | None) -> BIP32Key:
         self.assertIsNotNone(key)
         return cast(BIP32Key, key)
 

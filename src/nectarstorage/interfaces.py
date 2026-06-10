@@ -1,8 +1,9 @@
 # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/interfaces.py
-from typing import Any, Iterator, Optional, Protocol
+from collections.abc import Iterator
+from typing import Any, Protocol
 
 
-class StoreInterface(object):
+class StoreInterface:
     """The store interface is the most general store that we can have.
 
     It behaves like a dictionary but allows returning None for missing keys and
@@ -274,9 +275,9 @@ class KeyStoreInterface(Protocol):
 
     def getPublicKeys(self) -> list[str]: ...
 
-    def getPrivateKeyForPublicKey(self, pub: str) -> Optional[str]: ...
+    def getPrivateKeyForPublicKey(self, pub: str) -> str | None: ...
 
-    def add(self, wif: str, pub: Optional[str] = None) -> None: ...
+    def add(self, wif: str, pub: str | None = None) -> None: ...
 
     def delete(self, key: str) -> None: ...
 

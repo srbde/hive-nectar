@@ -3,8 +3,9 @@ import logging
 import re
 import warnings
 from bisect import bisect_left
+from collections.abc import Generator
 from datetime import date, datetime, time, timedelta, timezone
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any
 
 from nectar.account import Account
 from nectar.amount import Amount
@@ -30,9 +31,9 @@ class AccountSnapshot(list):
 
     def __init__(
         self,
-        account: Union[str, Account],
-        account_history: Optional[List[Dict[str, Any]]] = None,
-        blockchain_instance: Optional[Any] = None,
+        account: str | Account,
+        account_history: list[dict[str, Any]] | None = None,
+        blockchain_instance: Any | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(account_history or [])
@@ -107,10 +108,10 @@ class AccountSnapshot(list):
     def search(
         self,
         search_str: str,
-        start: Optional[Union[datetime, date, time, int]] = None,
-        stop: Optional[Union[datetime, date, time, int]] = None,
+        start: datetime | date | time | int | None = None,
+        stop: datetime | date | time | int | None = None,
         use_block_num: bool = True,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Returns ops in the given range"""
         ops = []
         if start is not None and not isinstance(start, int):
@@ -171,12 +172,12 @@ class AccountSnapshot(list):
 
     def get_ops(
         self,
-        start: Optional[Union[datetime, date, time, int]] = None,
-        stop: Optional[Union[datetime, date, time, int]] = None,
+        start: datetime | date | time | int | None = None,
+        stop: datetime | date | time | int | None = None,
         use_block_num: bool = True,
-        only_ops: Optional[List[str]] = None,
-        exclude_ops: Optional[List[str]] = None,
-    ) -> Generator[Dict[str, Any], None, None]:
+        only_ops: list[str] | None = None,
+        exclude_ops: list[str] | None = None,
+    ) -> Generator[dict[str, Any], None, None]:
         """Returns ops in the given range"""
         if only_ops is None:
             only_ops = []
@@ -239,8 +240,8 @@ class AccountSnapshot(list):
                 yield op
 
     def get_data(
-        self, timestamp: Optional[Union[datetime, date, time]] = None, index: int = 0
-    ) -> Dict[str, Any]:
+        self, timestamp: datetime | date | time | None = None, index: int = 0
+    ) -> dict[str, Any]:
         """
         Return a dictionary snapshot of the account state at or immediately before the given timestamp.
 
@@ -299,8 +300,8 @@ class AccountSnapshot(list):
 
     def get_account_history(
         self,
-        start: Optional[Union[datetime, date, time, int]] = None,
-        stop: Optional[Union[datetime, date, time, int]] = None,
+        start: datetime | date | time | int | None = None,
+        stop: datetime | date | time | int | None = None,
         use_block_num: bool = True,
     ) -> None:
         """
@@ -315,11 +316,11 @@ class AccountSnapshot(list):
 
     def update_rewards(
         self,
-        timestamp: Union[datetime, int],
-        curation_reward: Union[Amount, float],
-        author_vests: Union[Amount, float],
-        author_hive: Union[Amount, float],
-        author_hbd: Union[Amount, float],
+        timestamp: datetime | int,
+        curation_reward: Amount | float,
+        author_vests: Amount | float,
+        author_hive: Amount | float,
+        author_hbd: Amount | float,
     ) -> None:
         """
         Record a reward event at a given timestamp.
@@ -341,7 +342,7 @@ class AccountSnapshot(list):
         self.curation_rewards.append(curation_reward)
         self.author_rewards.append({"vests": author_vests, "hive": author_hive, "hbd": author_hbd})
 
-    def update_out_vote(self, timestamp: Union[datetime, int], weight: int) -> None:
+    def update_out_vote(self, timestamp: datetime | int, weight: int) -> None:
         """
         Record an outbound vote event.
 
@@ -354,9 +355,7 @@ class AccountSnapshot(list):
         self.out_vote_timestamp.append(timestamp)
         self.out_vote_weight.append(weight)
 
-    def update_in_vote(
-        self, timestamp: Union[datetime, int], weight: int, op: Dict[str, Any]
-    ) -> None:
+    def update_in_vote(self, timestamp: datetime | int, weight: int, op: dict[str, Any]) -> None:
         """
         Record an incoming vote event by parsing a Vote operation and appending its data to the snapshot's in-vote arrays.
 
@@ -391,11 +390,11 @@ class AccountSnapshot(list):
     def update(
         self,
         timestamp: datetime,
-        own: Union[Amount, float],
-        delegated_in: Optional[Union[Dict[str, Any], int]] = None,
-        delegated_out: Optional[Union[Dict[str, Any], int]] = None,
-        hive: Union[Amount, float] = 0,
-        hbd: Union[Amount, float] = 0,
+        own: Amount | float,
+        delegated_in: dict[str, Any] | int | None = None,
+        delegated_out: dict[str, Any] | int | None = None,
+        hive: Amount | float = 0,
+        hbd: Amount | float = 0,
     ) -> None:
         """
         Update internal time-series state with a new account event.
@@ -457,8 +456,8 @@ class AccountSnapshot(list):
 
     def build(
         self,
-        only_ops: Optional[List[str]] = None,
-        exclude_ops: Optional[List[str]] = None,
+        only_ops: list[str] | None = None,
+        exclude_ops: list[str] | None = None,
         enable_rewards: bool = False,
         enable_out_votes: bool = False,
         enable_in_votes: bool = False,
@@ -506,8 +505,8 @@ class AccountSnapshot(list):
 
     def parse_op(
         self,
-        op: Dict[str, Any],
-        only_ops: Optional[List[str]] = None,
+        op: dict[str, Any],
+        only_ops: list[str] | None = None,
         enable_rewards: bool = False,
         enable_out_votes: bool = False,
         enable_in_votes: bool = False,
@@ -949,7 +948,7 @@ class AccountSnapshot(list):
         self.vp_timestamp.append(datetime.now(timezone.utc))
 
     def build_curation_arrays(
-        self, end_date: Optional[Union[datetime, date, time]] = None, sum_days: int = 7
+        self, end_date: datetime | date | time | None = None, sum_days: int = 7
     ) -> None:
         """
         Compute curation-per-1000-HP time series and store them in

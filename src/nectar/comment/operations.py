@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from nectar.account import Account
 from nectar.exceptions import VotingInvalidOnArchivedPost
@@ -12,9 +12,7 @@ log = logging.getLogger(__name__)
 
 
 class CommentOperationsMixin:
-    def upvote(
-        self, weight: float = 100.0, voter: Optional[Union[str, Account]] = None
-    ) -> Dict[str, Any]:
+    def upvote(self, weight: float = 100.0, voter: str | Account | None = None) -> dict[str, Any]:
         """Upvote the post
 
         :param float weight: (optional) Weight for posting (-100.0 -
@@ -30,9 +28,7 @@ class CommentOperationsMixin:
                 raise VotingInvalidOnArchivedPost
         return self.vote(weight, account=voter)
 
-    def downvote(
-        self, weight: float = 100.0, voter: Optional[Union[str, Account]] = None
-    ) -> Dict[str, Any]:
+    def downvote(self, weight: float = 100.0, voter: str | Account | None = None) -> dict[str, Any]:
         """Downvote the post
 
         :param float weight: (optional) Weight for posting (-100.0 -
@@ -51,10 +47,10 @@ class CommentOperationsMixin:
     def vote(
         self,
         weight: float,
-        account: Optional[Union[str, Account]] = None,
-        identifier: Optional[str] = None,
+        account: str | Account | None = None,
+        identifier: str | None = None,
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Vote for a post
 
         :param float weight: Voting weight. Range: -100.0 - +100.0.

@@ -1,8 +1,9 @@
 import logging
+from collections.abc import Callable
 from queue import Queue
 from threading import Event, Thread
 from time import sleep
-from typing import Any, Callable, List, Union
+from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -154,7 +155,7 @@ class Pool:
         """Returns True if not tasks are left to be completed"""
         return self.queue.empty()
 
-    def results(self, sleep_time: Union[int, float] = 0) -> List[Any]:
+    def results(self, sleep_time: int | float = 0) -> list[Any]:
         """Get the set of results that have been processed, repeatedly call until done"""
         sleep(sleep_time)
         results = []

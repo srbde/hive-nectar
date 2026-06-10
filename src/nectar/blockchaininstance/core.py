@@ -292,7 +292,7 @@ class BlockChainInstance:
                 str(self.nobroadcast),
             )
         else:
-            return "<{}, nobroadcast={}>".format(self.__class__.__name__, str(self.nobroadcast))
+            return f"<{self.__class__.__name__}, nobroadcast={str(self.nobroadcast)}>"
 
     def clear_data(self) -> None:
         """
