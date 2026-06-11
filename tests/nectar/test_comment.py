@@ -1,17 +1,89 @@
 import unittest
+from unittest import mock
 
 import pytest
 from parameterized import parameterized
 
 from nectar import Hive, exceptions
+from nectar.amount import Amount
 from nectar.comment import AccountPosts, Comment, RankedPosts, RecentByPath, RecentReplies
 from nectar.utils import resolve_authorperm
 from nectar.vote import Vote
 from nectarapi.exceptions import InvalidParameters
+from nectargraphenebase.chains import known_chains
 
 from .nodes import get_hive_nodes
 
 wif = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"
+
+
+class _FakePrice:
+    def __mul__(self, other):
+        return Amount(1, "HBD", blockchain_instance=other.blockchain)
+
+
+class _FakeBlockchain:
+    backed_token_symbol = "HBD"
+    token_symbol = "HIVE"
+
+    def get_reward_funds(self):
+        return {"recent_claims": "1000000", "reward_balance": "1000.000 HIVE"}
+
+    def get_median_price(self):
+        return _FakePrice()
+
+    def get_network(self):
+        return known_chains["HIVE"]
+
+
+class _FakeAccount:
+    downvoting_power = 100.0
+    voting_power = 100.0
+
+    def __init__(self, account, blockchain_instance=None):
+        self.account = account
+        self.blockchain = blockchain_instance
+
+    def get_effective_vesting_shares(self):
+        return 1_000_000
+
+    def get_downvoting_power(self):
+        return self.downvoting_power
+
+    def get_voting_power(self):
+        return self.voting_power
+
+
+def test_to_zero_does_not_downvote_when_current_power_cannot_zero():
+    _FakeAccount.downvoting_power = 100.0
+    _FakeAccount.voting_power = 100.0
+    comment = Comment.__new__(Comment)
+    dict.__init__(comment)
+    comment["pending_payout_value"] = "1000.000 HBD"
+    comment.blockchain = _FakeBlockchain()
+    comment.downvote = mock.Mock()
+
+    with mock.patch("nectar.account.Account", _FakeAccount):
+        vote_pct = comment.to_zero("alice")
+
+    assert vote_pct == -100.0
+    comment.downvote.assert_not_called()
+
+
+def test_to_zero_uses_regular_voting_power_after_downvote_pool_is_low():
+    _FakeAccount.downvoting_power = 1.0
+    _FakeAccount.voting_power = 50.0
+    comment = Comment.__new__(Comment)
+    dict.__init__(comment)
+    comment["pending_payout_value"] = "1.000 HBD"
+    comment.blockchain = _FakeBlockchain()
+    comment.downvote = mock.Mock()
+
+    with mock.patch("nectar.account.Account", _FakeAccount):
+        vote_pct = comment.to_zero("alice")
+
+    assert vote_pct == -10.0
+    comment.downvote.assert_called_once_with(10.0, voter="alice")
 
 
 class Testcases(unittest.TestCase):

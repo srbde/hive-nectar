@@ -364,7 +364,11 @@ class Comment(BlockchainObject):
         effective_vests = float(acct.get_effective_vesting_shares())
         final_vests = effective_vests * 1e6
         get_dvp = getattr(acct, "get_downvoting_power", None)
-        downvote_power_pct = float(get_dvp() if callable(get_dvp) else acct.get_voting_power())
+        get_vp = getattr(acct, "get_voting_power", None)
+        voting_power_pct = float(get_vp()) if callable(get_vp) else 0.0
+        downvote_power_pct = (
+            max(float(get_dvp()), voting_power_pct) if callable(get_dvp) else voting_power_pct
+        )
 
         # Reference 100% downvote value using provided sample formula
         power = (100 * 100 / 10000.0) / 50.0  # (vote_power * vote_weight / 10000) / 50
@@ -380,12 +384,13 @@ class Comment(BlockchainObject):
         ui_pct = -percent_needed_ui * (partial / 100.0)
         # Scale to UI percent
         ui_pct_scaled = ui_pct * 100.0
+        can_zero = ui_pct_scaled >= -100.0
         if ui_pct_scaled < -100.0:
             ui_pct_scaled = -100.0
         if ui_pct_scaled > 0.0:
             ui_pct_scaled = 0.0
 
-        if ui_pct_scaled < 0.0 and not nobroadcast:
+        if can_zero and ui_pct_scaled < 0.0 and not nobroadcast:
             self.downvote(abs(ui_pct_scaled), voter=account)
         return ui_pct_scaled
 
