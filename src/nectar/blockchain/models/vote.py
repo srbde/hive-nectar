@@ -640,7 +640,11 @@ class ActiveVotes(VotesObject):
         effective_vests = float(account.get_effective_vesting_shares())
         final_vests = effective_vests * 1e6  # micro-vests as in reference
         get_dvp = getattr(account, "get_downvoting_power", None)
-        downvote_power_pct = get_dvp() if callable(get_dvp) else account.get_voting_power()
+        get_vp = getattr(account, "get_voting_power", None)
+        voting_power_pct = float(get_vp()) if callable(get_vp) else 0.0
+        downvote_power_pct = (
+            max(float(get_dvp()), voting_power_pct) if callable(get_dvp) else voting_power_pct
+        )
 
         # Reference power model (vote_power=100, vote_weight=100) with divisor 50
         power = (100 * 100 / 10000) / 50.0  # = 0.0002
