@@ -18,8 +18,7 @@ class AESCipher:
 
     @staticmethod
     def str_to_bytes(data: Any) -> bytes:
-        u_type = type(b"".decode("utf8"))
-        if isinstance(data, u_type):
+        if isinstance(data, str):
             return data.encode("utf8")
         return data
 

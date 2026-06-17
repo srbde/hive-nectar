@@ -28,7 +28,6 @@ Submodules
    :maxdepth: 4
 
    nectar.amount
-   nectar.asciichart
    nectar.asset
    nectar.block
    nectar.blockchaininstance

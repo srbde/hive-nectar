@@ -1,4 +1,4 @@
-import json
+import copy
 import logging
 from collections.abc import Iterable
 from typing import Any
@@ -29,7 +29,7 @@ def get_query(
 
     # Pass through plain dict
     if isinstance(normalized_args, dict):
-        params: dict[str, Any] | list[Any] = json.loads(json.dumps(normalized_args))
+        params: dict[str, Any] | list[Any] = copy.deepcopy(normalized_args)
         return {
             "method": f"{api_name}.{name}",
             "params": params,
@@ -45,7 +45,7 @@ def get_query(
                 queries.append(
                     {
                         "method": f"{api_name}.{name}",
-                        "params": json.loads(json.dumps(entry)),
+                        "params": copy.deepcopy(entry),
                         "jsonrpc": "2.0",
                         "id": request_id,
                     }
@@ -65,7 +65,7 @@ def get_query(
                 queries.append(
                     {
                         "method": f"{api_name}.{name}",
-                        "params": json.loads(json.dumps(entry)),
+                        "params": copy.deepcopy(entry),
                         "jsonrpc": "2.0",
                         "id": request_id,
                     }
@@ -77,7 +77,7 @@ def get_query(
         if len(normalized_args) == 1 and isinstance(normalized_args[0], dict):
             return {
                 "method": f"{api_name}.{name}",
-                "params": json.loads(json.dumps(normalized_args[0])),
+                "params": copy.deepcopy(normalized_args[0]),
                 "jsonrpc": "2.0",
                 "id": request_id,
             }
@@ -85,7 +85,7 @@ def get_query(
         # Generic positional args
         return {
             "method": f"{api_name}.{name}",
-            "params": json.loads(json.dumps(normalized_args)),
+            "params": copy.deepcopy(normalized_args),
             "jsonrpc": "2.0",
             "id": request_id,
         }

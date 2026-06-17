@@ -1,6 +1,22 @@
 Changelog
 =========
 
+1.0.6 - 2026-06-17
+------------------
+
+Refactoring & Optimization
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **Cleanup**:
+  - Deleted the unused ``asciichart`` plotting module and all its tests and documentation.
+  - Inherited ``StoreInterface`` from ``collections.abc.MutableMapping`` to simplify dictionary/mapping boilerplate.
+  - Removed the third-party ``appdirs`` dependency and replaced it with standard-library-based user directory lookup using ``os`` and ``sys``.
+  - Simplified type checks in ``AESCipher.str_to_bytes`` using ``isinstance(data, str)``.
+  - Optimized ``InRamStore.wipe()`` to utilize ``self.clear()``.
+  - Optimized dynamic query building by replacing JSON-based deep-copy hacks with ``copy.deepcopy``.
+  - Simplified package versioning by removing ``generate_versions.py`` and the ``tomli`` dev dependency, using standard library ``importlib.metadata`` for dynamic version resolution.
+  - Cleaned up the directory structure by deleting empty directories.
+
 1.0.5 - 2026-05-30
 ------------------
 
@@ -61,7 +77,7 @@ Refactoring
 - **Phase 8: Utility & Integration Layer**:
   Modularized miscellaneous helpers:
 
-  - Extracted formatting, asciicharts, imageuploader, snapshot, and HAF logic into ``src/nectar/utils/``.
+  - Extracted formatting, imageuploader, snapshot, and HAF logic into ``src/nectar/utils/``.
   - Configured lazy loading/selective exports to prevent circular imports during package initialization.
 
 - **NodeList & Caching Fixes**:

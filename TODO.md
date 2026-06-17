@@ -17,3 +17,13 @@ Practical refactors to strip legacy branches, rely on the static `nectarapi/open
 ## Testing & Quality
 
 - Expand integration tests with VCR-backed network mocks (`pytest-recording`/`vcrpy`) to validate complex operations like `get_discussions_by_x`, votes, and custom JSON posts.
+
+## Over-engineering & Cleanup
+
+- [x] **Delete unused `asciichart` module**: Remove dead plotting code (`src/nectar/asciichart.py`, `src/nectar/utils/charts.py`) and its associated tests (`tests/unit/test_asciichart.py`, `tests/legacy/legacy_nectar/test_asciichart.py`).
+- [x] **Inherit from `collections.abc.MutableMapping` in `StoreInterface`**: Replace custom dictionary/mapping implementations (like `keys`, `values`, `items`, `pop`, `clear`, `update`) in `src/nectarstorage/interfaces.py` with standard library inheritance to reduce boilerplate.
+- [x] **Remove `appdirs` dependency**: Replace the third-party `appdirs` package with native standard library `os.environ` / platform calls for looking up user data directory path.
+- [x] **Simplify type checking in `AESCipher.str_to_bytes`**: Replace the over-engineered `type(b"".decode("utf8"))` check in `src/nectargraphenebase/aes.py` with a simple `isinstance(data, str)`.
+- [x] **Optimize `InRamStore.wipe()`**: Simplify the loop-based key-deletion in `src/nectarstorage/ram.py` to a single call to `self.clear()` or `self._data.clear()`.
+- [x] **Clean up `get_query` deep copying**: Replace the hacky `json.loads(json.dumps(...))` deep copy in `src/nectarapi/rpcutils.py` with `copy.deepcopy`.
+- [x] **Delete empty `tests/nectar` directory**.

@@ -1,3 +1,6 @@
-"""THIS FILE IS GENERATED FROM nectar PYPROJECT.TOML."""
+import importlib.metadata
 
-version = "1.0.1"
+try:
+    version = importlib.metadata.version("hive-nectar")
+except importlib.metadata.PackageNotFoundError:
+    version = "1.0.1"

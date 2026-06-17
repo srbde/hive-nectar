@@ -1,9 +1,9 @@
 # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/interfaces.py
-from collections.abc import Iterator
+from collections.abc import Iterator, MutableMapping
 from typing import Any, Protocol
 
 
-class StoreInterface:
+class StoreInterface(MutableMapping):
     """The store interface is the most general store that we can have.
 
     It behaves like a dictionary but allows returning None for missing keys and
@@ -65,18 +65,6 @@ class StoreInterface:
             raise KeyError(key)
         self._data.pop(key)
 
-    def keys(self):
-        """Returns the keys of the store"""
-        return self._data.keys()
-
-    def values(self):
-        """Returns the values of the store"""
-        return self._data.values()
-
-    def items(self):
-        """Returns all items of the store as tuples"""
-        return self._data.items()
-
     def get(self, key, default=None):
         """Return the key if exists or a default value"""
         return self._data.get(key, self.defaults.get(key, default))
@@ -92,18 +80,6 @@ class StoreInterface:
     def clear(self) -> None:
         """Clear all entries from the store"""
         self._data.clear()
-
-    def update(self, other=None, **kwargs) -> None:
-        """Update the store with keys and values from other"""
-        if other is not None:
-            if hasattr(other, "keys"):
-                for k in other:
-                    self[k] = other[k]
-            else:
-                for k, v in other:
-                    self[k] = v
-        for k, v in kwargs.items():
-            self[k] = v
 
     # Specific for this library
     def delete(self, key):

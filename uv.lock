@@ -7,6 +7,21 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 
+[options]
+exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
+exclude-newer-span = "P3D"
+
+[options.exclude-newer-package]
+semble = false
+qtile = false
+ty = false
+nectarengine = false
+yt-dlp = false
+ruff = false
+prek = false
+strip-tags = false
+hive-nectar = false
+
 [[package]]
 name = "alabaster"
 version = "1.0.0"
@@ -28,15 +43,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/19/14/2c5dd9f512b66549ae92767a9c7b330ae88e1932ca57876909410251fe13/anyio-4.13.0.tar.gz", hash = "sha256:334b70e641fd2221c1505b3890c69882fe4a2df910cba14d97019b90b24439dc", size = 231622, upload-time = "2026-03-24T12:59:09.671Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/da/42/e921fccf5015463e32a3cf6ee7f980a6ed0f395ceeaa45060b61d86486c2/anyio-4.13.0-py3-none-any.whl", hash = "sha256:08b310f9e24a9594186fd75b4f73f4a4152069e3853f1ed8bfbf58369f4ad708", size = 114353, upload-time = "2026-03-24T12:59:08.246Z" },
-]
-
-[[package]]
-name = "appdirs"
-version = "1.4.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d7/d8/05696357e0311f5b5c316d7b95f46c669dd9c15aaeecbb48c7d0aeb88c40/appdirs-1.4.4.tar.gz", hash = "sha256:7d5d0167b2b1ba821647616af46a749d1c653740dd0d2415100fe26e27afdf41", size = 13470, upload-time = "2020-05-11T07:59:51.037Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/00/2344469e2084fb287c2e0b57b72910309874c3245463acd6cf5e3db69324/appdirs-1.4.4-py2.py3-none-any.whl", hash = "sha256:a841dacd6b99318a741b166adb07e19ee71a274450e68237b4650ca1055ab128", size = 9566, upload-time = "2020-05-11T07:59:49.499Z" },
 ]
 
 [[package]]
@@ -528,7 +534,6 @@ name = "hive-nectar"
 version = "1.0.1"
 source = { editable = "." }
 dependencies = [
-    { name = "appdirs" },
     { name = "asn1crypto" },
     { name = "click" },
     { name = "coincurve" },
@@ -553,12 +558,10 @@ dev = [
     { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "sphinx-click" },
     { name = "sphinx-rtd-theme" },
-    { name = "tomli" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "appdirs" },
     { name = "asn1crypto" },
     { name = "click" },
     { name = "coincurve", git = "https://github.com/ofek/coincurve?rev=7829b29c08ebb1cc80386a1cdaf8c2243c4ef5c5" },
@@ -581,7 +584,6 @@ dev = [
     { name = "sphinx" },
     { name = "sphinx-click" },
     { name = "sphinx-rtd-theme" },
-    { name = "tomli" },
 ]
 
 [[package]]

@@ -7,7 +7,6 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
-   nectar.utils.charts
    nectar.utils.formatting
    nectar.utils.haf
    nectar.utils.media

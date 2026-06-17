@@ -43,7 +43,6 @@ time.sleep = patched_sleep
 def pytest_collection_modifyitems(config, items):
     offline_files = {
         "test_aes.py",
-        "test_asciichart.py",
         "test_objectcache.py",
         "test_profile.py",
         "test_utils.py",

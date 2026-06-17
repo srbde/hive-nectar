@@ -27,7 +27,6 @@ classifiers = [
   "Topic :: Office/Business :: Financial",
 ]
 dependencies = [
-  "appdirs",
   "asn1crypto",
   "click",
   "coincurve>=20.0.0",
@@ -67,7 +66,6 @@ dev = [
   "sphinx",
   "sphinx-click",
   "sphinx-rtd-theme",
-  "tomli",
 ]
 
 [tool.uv]

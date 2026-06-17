@@ -1,17 +1,30 @@
 # Inspired by https://raw.githubusercontent.com/xeroc/python-graphenelib/master/graphenestorage/sqlite.py
 import logging
+import os
 import shutil
 import sqlite3
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from appdirs import user_data_dir
-
 from .interfaces import StoreInterface
 
 log = logging.getLogger(__name__)
+
+
+def get_user_data_dir(appname: str, appauthor: str) -> Path:
+    if sys.platform == "win32":
+        local_app = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~/AppData/Local")
+        return Path(local_app) / appauthor / appname
+    elif sys.platform == "darwin":
+        return Path(os.path.expanduser("~/Library/Application Support")) / appname
+    else:
+        xdg_data = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+        return Path(xdg_data) / appname
+
+
 timeformat = "%Y%m%d-%H%M%S"
 
 
@@ -47,7 +60,7 @@ class SQLiteFile:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         appauthor = "nectar"
         appname = kwargs.get("appname", "nectar")
-        self.data_dir = Path(kwargs.get("data_dir", user_data_dir(appname, appauthor)))
+        self.data_dir = Path(kwargs.get("data_dir", get_user_data_dir(appname, appauthor)))
 
         if "profile" in kwargs:
             self.storageDatabase = f"{kwargs['profile']}.sqlite"
