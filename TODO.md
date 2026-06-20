@@ -11,8 +11,8 @@ Practical refactors to strip legacy branches, rely on the static `nectarapi/open
 ## API & Network Refactoring
 
 - Refactor `Account.get_blog` to use `bridge.get_account_posts` (Bridge API) instead of `condenser_api.get_blog`. This aligns with `Discussions_by_blog` but requires changing pagination from index-based (`entry_id`) to cursor-based (`start_author`/`start_permlink`).
-- Introduce an asynchronous version of the RPC client (`nectarapi`) using `httpx` or `aiohttp` to support concurrent operations.
-- Move node health checks and latency evaluations to non-blocking background routines so node failovers don't block request threads.
+- Introduce an asynchronous version of the RPC client (`nectarapi`) using `httpx` or `aiohttp` to support concurrent operations. (Done)
+- Move node health checks and latency evaluations to non-blocking background routines so node failovers don't block request threads. (Done)
 
 ## Testing & Quality
 

@@ -28,7 +28,9 @@ class RPCNode:
 
 
 class NodePoolManager:
-    def __init__(self, node_urls: list[str], max_lag: int = 15) -> None:
+    def __init__(
+        self, node_urls: list[str], max_lag: int = 15, monitor_interval: float | None = None
+    ) -> None:
         if not node_urls:
             node_urls = ["https://api.hive.blog"]
         self.nodes = [RPCNode(url) for url in node_urls]
@@ -36,6 +38,54 @@ class NodePoolManager:
         self.lock = threading.RLock()
         self._active_node = self.nodes[0]
         self._recalculate_best_node()
+
+        import sys
+
+        if monitor_interval is None:
+            if "pytest" in sys.modules or "unittest" in sys.modules:
+                self.monitor_interval = 0.0
+            else:
+                self.monitor_interval = 30.0
+        else:
+            self.monitor_interval = monitor_interval
+
+        self._stop_event = threading.Event()
+        self._monitor_thread = None
+        if self.monitor_interval > 0:
+            self.start_monitoring()
+
+    def start_monitoring(self) -> None:
+        with self.lock:
+            if self._monitor_thread is not None and self._monitor_thread.is_alive():
+                return
+            self._stop_event.clear()
+            self._monitor_thread = threading.Thread(
+                target=self._monitor_loop, daemon=True, name="NodePoolMonitor"
+            )
+            self._monitor_thread.start()
+
+    def stop_monitoring(self) -> None:
+        with self.lock:
+            self._stop_event.set()
+            self._monitor_thread = None
+
+    def close(self) -> None:
+        self.stop_monitoring()
+
+    def __del__(self) -> None:
+        try:
+            self.close()
+        except Exception:
+            pass
+
+    def _monitor_loop(self) -> None:
+        while not self._stop_event.is_set():
+            try:
+                self.update_pool()
+            except Exception as e:
+                log.debug(f"Error in NodePoolManager background monitor: {e}")
+            if self._stop_event.wait(self.monitor_interval):
+                break
 
     def get_active_node(self) -> RPCNode:
         with self.lock:

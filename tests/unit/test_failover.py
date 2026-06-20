@@ -457,3 +457,24 @@ class TestFailoverIntegration:
         assert response.status_code == 200
         assert "primary.hive.blog" in call_log
         assert "secondary.hive.blog" in call_log
+
+    def test_background_monitoring(self, mocker):
+        import time
+
+        # Start with monitoring disabled
+        pm = NodePoolManager(["https://api.hive.blog"], monitor_interval=0.0)
+        assert pm._monitor_thread is None
+
+        # Start explicitly with small interval
+        mock_update = mocker.patch.object(pm, "update_pool")
+        pm.monitor_interval = 0.05
+        pm.start_monitoring()
+        assert pm._monitor_thread is not None
+        assert pm._monitor_thread.is_alive()
+
+        time.sleep(0.15)
+        assert mock_update.call_count >= 1
+
+        pm.close()
+        time.sleep(0.1)
+        assert not pm._monitor_thread or not pm._monitor_thread.is_alive()

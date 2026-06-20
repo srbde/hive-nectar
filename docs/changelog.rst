@@ -4,6 +4,14 @@ Changelog
 1.0.6 - 2026-06-17
 ------------------
 
+Features
+~~~~~~~~
+
+- **Background Node Health Monitoring**:
+  Introduced a non-blocking background daemon monitoring loop in ``NodePoolManager``
+  that periodically probes node latencies and head blocks, ensuring proactive failover
+  routing decisions without blocking main request threads.
+
 Refactoring & Optimization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
