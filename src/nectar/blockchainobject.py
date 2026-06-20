@@ -1,19 +1,20 @@
 import json
 import threading
+from collections.abc import Iterator, MutableMapping
 from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 
 from nectar.instance import shared_blockchain_instance
 
 
-class ObjectCache(dict):
+class ObjectCache(MutableMapping):
     def __init__(
         self,
         initial_data: dict[Any, Any] | None = None,
         default_expiration: int = 10,
         auto_clean: bool = True,
     ) -> None:
-        super().__init__(initial_data or {})
+        self._data = dict(initial_data or {})
         self.set_expiration(default_expiration)
         self.auto_clean = auto_clean
         self.lock = threading.RLock()
@@ -24,47 +25,57 @@ class ObjectCache(dict):
             "data": value,
         }
         with self.lock:
-            if key in self:
-                del self[key]
-            dict.__setitem__(self, key, data)
+            self._data[key] = data
         if self.auto_clean:
             self.clear_expired_items()
 
     def __getitem__(self, key: Any) -> Any:
         with self.lock:
             if key in self:
-                value = dict.__getitem__(self, key)
+                value = self._data[key]
                 if value is not None:
                     return value["data"]
+        return None
+
+    def __delitem__(self, key: Any) -> None:
+        with self.lock:
+            if key in self._data:
+                del self._data[key]
+
+    def __iter__(self) -> Iterator:
+        with self.lock:
+            return iter(list(self._data.keys()))
+
+    def __len__(self) -> int:
+        with self.lock:
+            return len(self._data)
 
     def get(self, key: Any, default: Any = None) -> Any:
         with self.lock:
             if key in self:
-                if self[key] is not None:
-                    return self[key]
-                else:
-                    return default
-            else:
-                return default
+                value = self._data[key]
+                if value is not None:
+                    return value["data"]
+            return default
 
     def clear_expired_items(self) -> None:
         with self.lock:
             del_list = []
             utc_now = datetime.now(timezone.utc)
-            for key in self:
-                value = dict.__getitem__(self, key)
+            for key, value in list(self._data.items()):
                 if value is None:
                     del_list.append(key)
                     continue
                 if utc_now >= value["expires"]:
                     del_list.append(key)
             for key in del_list:
-                del self[key]
+                if key in self._data:
+                    del self._data[key]
 
     def __contains__(self, key: Any) -> bool:
         with self.lock:
-            if dict.__contains__(self, key):
-                value = dict.__getitem__(self, key)
+            if key in self._data:
+                value = self._data[key]
                 if value is None:
                     return False
                 if datetime.now(timezone.utc) < value["expires"]:
@@ -78,7 +89,7 @@ class ObjectCache(dict):
             self.clear_expired_items()
         n = 0
         with self.lock:
-            n = len(list(self.keys()))
+            n = len(self._data)
         return f"ObjectCache(n={n}, default_expiration={self.default_expiration})"
 
     def set_expiration(self, expiration: int) -> None:
@@ -86,7 +97,7 @@ class ObjectCache(dict):
         self.default_expiration = expiration
 
 
-class BlockchainObject(dict):
+class BlockchainObject(MutableMapping):
     space_id = 1
     type_id = None
     type_ids = []
@@ -139,6 +150,7 @@ class BlockchainObject(dict):
         Raises:
             ValueError: if `data` is a list, set, or tuple.
         """
+        self._data = {}
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         self.cached = False
         self.identifier = None
@@ -154,11 +166,11 @@ class BlockchainObject(dict):
         if klass and isinstance(data, klass) and hasattr(data, "get"):
             mapping_data = cast(dict[str, Any], data)
             self.identifier = mapping_data.get(self.id_item)
-            super().__init__(mapping_data)
+            self._data.update(mapping_data)
         elif isinstance(data, dict):
             mapping_data = cast(dict[str, Any], data)
             self.identifier = mapping_data.get(self.id_item)
-            super().__init__(mapping_data)
+            self._data.update(mapping_data)
         elif isinstance(data, int):
             # This is only for block number basically
             self.identifier = data
@@ -166,7 +178,7 @@ class BlockchainObject(dict):
                 self.refresh()
             # make sure to store the blocknumber for caching
             self[self.id_item] = data
-            # Set identifier again as it is overwritten in super() in refresh()
+            # Set identifier again as it is overwritten in refresh()
             self.identifier = data
         elif isinstance(data, str):
             self.identifier = data
@@ -180,13 +192,25 @@ class BlockchainObject(dict):
                 # Here we assume we deal with an id
                 self.testid(self.identifier)
             if self.iscached(data):
-                super().__init__(self.getcache(data))
+                cached_obj = self.getcache(data)
+                if isinstance(cached_obj, BlockchainObject):
+                    self._data.update(cached_obj._data)
+                else:
+                    self._data.update(cached_obj)
             elif not lazy and not self.cached:
                 self.refresh()
 
         if use_cache and not lazy:
             self.cache()
             self.cached = True
+
+    def copy(self) -> Any:
+        return self.__class__(
+            dict(self),
+            lazy=True,
+            use_cache=False,
+            blockchain_instance=self.blockchain,
+        )
 
     def refresh(self) -> None:
         """Refresh the object's data from the API.
@@ -217,8 +241,8 @@ class BlockchainObject(dict):
 
     def cache(self) -> None:
         # store in cache
-        if dict.__contains__(self, self.id_item):
-            BlockchainObject._cache[self.get(self.id_item)] = self
+        if self.id_item in self._data:
+            BlockchainObject._cache[self._data[self.id_item]] = self
 
     def clear_cache_from_expired_items(self) -> None:
         BlockchainObject._cache.clear_expired_items()
@@ -244,20 +268,51 @@ class BlockchainObject(dict):
     def __getitem__(self, key: Any) -> Any:
         if not self.cached:
             self.refresh()
-        return super().__getitem__(key)
+        return self._data[key]
+
+    def __setitem__(self, key: Any, value: Any) -> None:
+        self._data[key] = value
+
+    def __delitem__(self, key: Any) -> None:
+        del self._data[key]
+
+    def __iter__(self) -> Iterator:
+        if not self.cached:
+            self.refresh()
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        if not self.cached:
+            self.refresh()
+        return len(self._data)
 
     def items(self):
         if not self.cached:
             self.refresh()
-        return super().items()
+        return self._data.items()
 
     def __contains__(self, key: Any) -> bool:
         if not self.cached:
             self.refresh()
-        return super().__contains__(key)
+        return key in self._data
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {str(self.identifier)}>"
 
     def json(self) -> dict[str, Any]:
-        return json.loads(str(json.dumps(self)))
+        return json.loads(json.dumps(dict(self)))
+
+
+# Patch JSONEncoder to support MutableMapping and objects with .json() method
+_original_default = json.JSONEncoder.default
+
+
+def _custom_default(self, obj):
+    if hasattr(obj, "json") and callable(obj.json):
+        return obj.json()
+    if isinstance(obj, MutableMapping):
+        return dict(obj)
+    return _original_default(self, obj)
+
+
+json.JSONEncoder.default = _custom_default

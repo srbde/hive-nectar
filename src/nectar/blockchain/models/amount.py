@@ -1,3 +1,4 @@
+from collections.abc import Iterator, MutableMapping
 from decimal import ROUND_DOWN, Decimal
 from typing import TYPE_CHECKING, Any, Union
 
@@ -14,7 +15,12 @@ def check_asset(other: Any, self: Any, hv: Any) -> None:
 
     If both `other` and `self` are dicts containing an "asset" key, each asset id is wrapped in an Asset using the provided blockchain instance and compared for equality. Otherwise the two values are compared directly. Raises AssertionError if the values do not match.
     """
-    if isinstance(other, dict) and "asset" in other and isinstance(self, dict) and "asset" in self:
+    if (
+        isinstance(other, (dict, MutableMapping))
+        and "asset" in other
+        and isinstance(self, (dict, MutableMapping))
+        and "asset" in self
+    ):
         if not Asset(other["asset"], blockchain_instance=hv) == Asset(
             self["asset"], blockchain_instance=hv
         ):
@@ -31,7 +37,7 @@ def quantize(amount: str | int | float | Decimal, precision: int) -> Decimal:
     return amount.quantize(places, rounding=ROUND_DOWN)
 
 
-class Amount(dict):
+class Amount(MutableMapping):
     """This class deals with Amounts of any asset to simplify dealing with the tuple::
 
         (amount, asset)
@@ -93,34 +99,8 @@ class Amount(dict):
         json_str: bool = False,
         **kwargs,
     ) -> None:
-        """
-        Initialize an Amount object representing a quantity of a specific blockchain asset.
-
-        The constructor accepts many input formats and normalizes them into internal keys:
-        - amount may be another Amount, a three-element list [amount, precision, asset],
-          a new appbase-format dict with keys ("amount", "nai", "precision"), a legacy dict
-          with ("amount", "asset_id") or ("amount", "asset"), a string like "1.000 HIVE",
-          or a numeric value (int, float, Decimal) paired with an `asset` argument.
-        - asset may be an Asset instance, an asset dict, or a symbol string; when omitted,
-          the asset will be inferred from the provided `amount` representation.
-
-        After parsing, the instance stores:
-        - "amount" as a Decimal (or quantized Decimal when fixed-point mode is enabled),
-        - "symbol" as the asset symbol,
-        - "asset" as an Asset-like object.
-
-        Parameters:
-            amount: Various accepted formats (see description) representing the quantity.
-            asset: Asset instance, asset dict, or asset symbol string used when `amount`
-                is a bare numeric value or when explicit asset resolution is required.
-            fixed_point_arithmetic (bool): When True, the numeric amount is quantized
-                to the asset's precision using floor rounding.
-            new_appbase_format (bool): Indicates whether to prefer the new appbase JSON
-                format when producing serialized representations.
-
-        Raises:
-            ValueError: If `amount` and `asset` do not match any supported input format.
-        """
+        """Initialize an Amount object representing a quantity of a specific blockchain asset."""
+        self._data = {}
         self["asset"] = {}
         self.new_appbase_format = new_appbase_format
         self.fixed_point_arithmetic = fixed_point_arithmetic
@@ -551,3 +531,18 @@ class Amount(dict):
     __truediv__ = __div__
     __itruediv__ = __idiv__
     __truemul__ = __mul__
+
+    def __getitem__(self, key: Any) -> Any:
+        return self._data[key]
+
+    def __setitem__(self, key: Any, value: Any) -> None:
+        self._data[key] = value
+
+    def __delitem__(self, key: Any) -> None:
+        del self._data[key]
+
+    def __iter__(self) -> Iterator:
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        return len(self._data)
