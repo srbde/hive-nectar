@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.6 - 2026-06-17
+## 1.0.6 - 2026-06-20
 
 ### Features
 
@@ -9,6 +9,7 @@
 ### Refactoring & Optimization
 
 - **Cleanup**:
+  - Refactored legacy `dict` inheritance in model classes (`Amount`, `Asset`, and `Price`) and caching layers with clean `MutableMapping` wrappers to resolve Liskov Substitution Principle (LSP) violations and type checking diagnostics.
   - Deleted the unused `asciichart` plotting module and all its tests and documentation.
   - Inherited `StoreInterface` from `collections.abc.MutableMapping` to simplify dictionary/mapping boilerplate.
   - Removed the third-party `appdirs` dependency and replaced it with standard-library-based user directory lookup using `os` and `sys`.
