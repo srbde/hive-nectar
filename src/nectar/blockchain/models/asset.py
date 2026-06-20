@@ -52,8 +52,8 @@ class Asset(BlockchainObject):
         elif hasattr(original_identifier, "identifier"):
             # If identifier has an identifier attribute, get its string representation
             original_identifier = str(original_identifier)
-        elif not isinstance(original_identifier, (str, int)):
-            # Convert to string if it's not already a string or int
+        else:
+            # Convert to string to ensure it matches string representations (e.g. str(id))
             original_identifier = str(original_identifier)
 
         for asset in self.chain_params["chain_assets"]:

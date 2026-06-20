@@ -1,4 +1,3 @@
-from collections.abc import Iterator, MutableMapping
 from decimal import Decimal
 from fractions import Fraction
 from typing import TYPE_CHECKING, Any, Union
@@ -14,7 +13,7 @@ if TYPE_CHECKING:
 from nectar.utils import assets_from_string, formatTimeString
 
 
-class Price(MutableMapping):
+class Price(dict):
     """This class deals with all sorts of prices of any pair of assets to
     simplify dealing with the tuple::
 
@@ -80,8 +79,37 @@ class Price(MutableMapping):
         base_asset: str | None = None,  # to identify sell/buy
         blockchain_instance: Any | None = None,
     ) -> None:
-        """Initialize a Price object representing a ratio between a base and quote asset."""
-        self._data = {}
+        """
+        Initialize a Price object representing a ratio between a base and quote asset.
+
+        This constructor accepts multiple input forms and normalizes them into internal
+        "base" and "quote" Amount entries. Supported usages:
+        - price: str like "X BASE/QUOTE" with no base/quote: parses symbols and creates
+          Amounts from the fractional representation of X.
+        - price: dict with "base" and "quote": loads Amounts directly (raises AssertionError
+          if a top-level "price" key is present).
+        - price: numeric (float/int/Decimal) with base and quote provided as Asset or
+          symbol strings: converts the numeric value to a Fraction and builds Amounts.
+        - price: str representing an Amount and base: when price is a string and base is
+          a symbol string, price and base are used to build quote/base Amounts.
+        - price and base as Amount instances: accepts Amount objects directly.
+        - price is None with base and quote as symbol strings or Amounts: loads assets
+          or Amounts respectively.
+
+        Parameters (not exhaustive):
+        - price: numeric, str, dict, or Amount — the price or a representation used to
+          derive base/quote Amounts.
+        - base: Asset, Amount, or str — identifies the base side (or a symbol string
+          used to parse both symbols when combined with a numeric price).
+        - quote: Asset, Amount, or str — identifies the quote side.
+        - base_asset: optional; used only as an identifier flag for buy/sell contexts.
+        - blockchain_instance: blockchain context used to construct Asset/Amount (omitted
+          from param listing as a shared service).
+
+        Raises:
+        - AssertionError: if a dict `price` includes a top-level "price" key.
+        - ValueError: if the combination of inputs cannot be parsed into base and quote.
+        """
         self.blockchain = blockchain_instance or shared_blockchain_instance()
         if price == "":
             price = None
@@ -174,28 +202,13 @@ class Price(MutableMapping):
             raise ValueError("Couldn't parse 'Price'.")
 
     def __setitem__(self, key: str, value: Any) -> None:
-        self._data[key] = value
+        dict.__setitem__(self, key, value)
         if (
-            "quote" in self._data
-            and "base" in self._data
-            and self._data["base"]
-            and self._data["quote"]
+            "quote" in self and "base" in self and self["base"] and self["quote"]
         ):  # don't derive price for deleted Orders
-            self._data["price"] = self._safedivide(
-                self._data["base"]["amount"], self._data["quote"]["amount"]
+            dict.__setitem__(
+                self, "price", self._safedivide(self["base"]["amount"], self["quote"]["amount"])
             )
-
-    def __getitem__(self, key: Any) -> Any:
-        return self._data[key]
-
-    def __delitem__(self, key: Any) -> None:
-        del self._data[key]
-
-    def __iter__(self) -> Iterator:
-        return iter(self._data)
-
-    def __len__(self) -> int:
-        return len(self._data)
 
     def copy(self) -> "Price":
         return Price(
