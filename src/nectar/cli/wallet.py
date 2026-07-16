@@ -30,6 +30,16 @@ from nectargraphenebase.account import (
 log = logging.getLogger(__name__)
 
 
+def _read_file(file_path):
+    with open(file_path) as f:
+        return f.read()
+
+
+def _write_file(file_path, content):
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
 @cli.command()
 @click.option("--wipe", is_flag=True, default=False, help="Wipe old wallet without prompt.")
 def createwallet(wipe):
@@ -594,8 +604,7 @@ def message(message_file, account, verify):
     if not account:
         account = hv.config["default_account"]
     if message_file is not None:
-        with open(message_file) as f:
-            msg_content = f.read()
+        msg_content = _read_file(message_file)
     elif verify:
         print(
             "Please store the signed message into a text file and append the file path to hive-nectar message -v"
@@ -615,8 +624,7 @@ def message(message_file, account, verify):
         signed = m.sign(account)
         out = signed if isinstance(signed, str) else json.dumps(signed, indent=4)
     if message_file is not None and not verify:
-        with open(message_file, "w", encoding="utf-8") as f:
-            f.write(out)
+        _write_file(message_file, out)
     elif not verify:
         print(out)
 

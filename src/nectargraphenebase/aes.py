@@ -1,6 +1,6 @@
-import base64
 import hashlib
 import os
+from base64 import b64decode, b64encode
 from typing import Any
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -41,10 +41,11 @@ class AESCipher:
         cipher = Cipher(algorithms.AES(self.key), modes.CBC(iv))
         encryptor = cipher.encryptor()
         encrypted = encryptor.update(raw) + encryptor.finalize()
-        return base64.b64encode(iv + encrypted).decode("utf-8")
+        encoded = b64encode(iv + encrypted)
+        return encoded.decode("utf-8")
 
     def decrypt(self, enc: str) -> str:
-        enc_bytes = base64.b64decode(enc)
+        enc_bytes = b64decode(enc)
         iv = enc_bytes[:16]
         cipher = Cipher(algorithms.AES(self.key), modes.CBC(iv))
         decryptor = cipher.decryptor()

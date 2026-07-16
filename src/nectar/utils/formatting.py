@@ -135,13 +135,25 @@ def parse_time(block_time: str) -> datetime:
     return datetime.strptime(block_time, timeFormat).replace(tzinfo=timezone.utc)
 
 
-def assets_from_string(text: str) -> list[str]:
+def parse_asset_pair(text: str) -> list[str]:
     """Correctly split a string containing an asset pair.
 
-    Splits the string into two assets with the separator being on of the
+    Splits the string into two assets with the separator being one of the
     following: `:`, `/`, or `-`.
     """
     return re.split(r"[\-:\/]", text)
+
+
+def assets_from_string(text: str) -> list[str]:
+    """Correctly split a string containing an asset pair (deprecated)."""
+    import warnings
+
+    warnings.warn(
+        "assets_from_string is deprecated, use parse_asset_pair instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return parse_asset_pair(text)
 
 
 def sanitize_permlink(permlink: str) -> str:
@@ -434,10 +446,10 @@ def seperate_yaml_dict_from_body(content: str) -> tuple[str, dict[str, Any]]:
     if len(content.split("---\n")) > 1:
         body = content[content.find("---\n", 1) + 4 :]
         yaml_content = content[content.find("---\n") + 4 : content.find("---\n", 1)]
-        yaml = YAML(typ="safe")
-        parameter = yaml.load(yaml_content)
+        yaml_parser = YAML(typ="safe")
+        parameter = yaml_parser.load(yaml_content)
         if not isinstance(parameter, dict):
-            parameter = yaml.load(yaml_content.replace(":", ": ").replace("  ", " "))
+            parameter = yaml_parser.load(yaml_content.replace(":", ": ").replace("  ", " "))
     else:
         body = content
     return body, parameter

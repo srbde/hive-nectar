@@ -20,6 +20,7 @@ from nectar.utils import (
     import_coldcard_wif,
     import_pubkeys,
     make_patch,
+    parse_asset_pair,
     remove_from_dict,
     resolve_authorperm,
     resolve_authorpermvoter,
@@ -47,6 +48,11 @@ def test_construct_authorpermvoter():
 def test_assets_from_string():
     assert assets_from_string("USD:BTS") == ["USD", "BTS"]
     assert assets_from_string("BTSBOTS.S1:BTS") == ["BTSBOTS.S1", "BTS"]
+
+
+def test_parse_asset_pair():
+    assert parse_asset_pair("USD:BTS") == ["USD", "BTS"]
+    assert parse_asset_pair("BTSBOTS.S1:BTS") == ["BTSBOTS.S1", "BTS"]
 
 
 def test_authorperm_resolve():

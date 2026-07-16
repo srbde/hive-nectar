@@ -10,7 +10,7 @@ from .asset import Asset
 
 if TYPE_CHECKING:
     from nectar.market import Market
-from nectar.utils import assets_from_string, formatTimeString
+from nectar.utils import formatTimeString, parse_asset_pair
 
 
 class Price(dict):
@@ -115,7 +115,7 @@ class Price(dict):
             price = None
         if price is not None and isinstance(price, str) and not base and not quote:
             price, assets = price.split(" ")
-            base_symbol, quote_symbol = assets_from_string(assets)
+            base_symbol, quote_symbol = parse_asset_pair(assets)
             base = Asset(base_symbol, blockchain_instance=self.blockchain)
             quote = Asset(quote_symbol, blockchain_instance=self.blockchain)
             frac = Fraction(float(price)).limit_denominator(10 ** base["precision"])
@@ -187,7 +187,7 @@ class Price(dict):
         elif (
             isinstance(price, float) or isinstance(price, int) or isinstance(price, Decimal)
         ) and isinstance(base, str):
-            base_symbol, quote_symbol = assets_from_string(base)
+            base_symbol, quote_symbol = parse_asset_pair(base)
             base = Asset(base_symbol, blockchain_instance=self.blockchain)
             quote = Asset(quote_symbol, blockchain_instance=self.blockchain)
             frac = Fraction(float(price)).limit_denominator(10 ** base["precision"])

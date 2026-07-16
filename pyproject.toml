@@ -56,8 +56,10 @@ hive-nectar = "nectar.cli:cli"
 
 [dependency-groups]
 dev = [
+  "bleach>=6.4.0",
   "build",
   "coverage",
+  "markdown>=3.10.2",
   "parameterized",
   "pytest",
   "pytest-mock",

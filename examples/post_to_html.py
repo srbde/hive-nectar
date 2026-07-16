@@ -6,7 +6,7 @@ import sys
 from datetime import datetime, timezone
 
 import jinja2
-import markdown
+import markdown as md_lib
 import pytz
 
 from nectar.comment import Comment
@@ -83,9 +83,45 @@ def main(args=None):
     md += "(%.2f) " % (rep)
     md += formatTimedelta(td_created) + "\n\n"
     md += comment["body"]
+
+    import bleach
+    from markupsafe import Markup
+
     extensions = ["extra", "smarty"]
-    html = markdown.markdown(md, extensions=extensions, output_format="html5")
-    doc = jinja2.Template(TEMPLATE).render(content=html, title=title)
+    html = md_lib.markdown(md, extensions=extensions, output_format="html5")
+
+    allowed_tags = [
+        "p",
+        "div",
+        "span",
+        "br",
+        "hr",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "ul",
+        "ol",
+        "li",
+        "blockquote",
+        "pre",
+        "code",
+        "em",
+        "strong",
+        "a",
+        "img",
+    ]
+    allowed_attributes = {
+        "a": ["href", "title", "target"],
+        "img": ["src", "alt", "title"],
+    }
+    cleaned_html = bleach.clean(html, tags=allowed_tags, attributes=allowed_attributes)
+
+    doc = jinja2.Template(TEMPLATE, autoescape=True).render(
+        content=Markup(cleaned_html), title=title
+    )
     args.out.write(doc)
 
 

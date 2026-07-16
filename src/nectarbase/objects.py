@@ -174,8 +174,9 @@ class Operation(GPHOperation):
         super().__init__(*args, **kwargs)
 
     def _getklass(self, name: str) -> type:
-        module = __import__("nectarbase.operations", fromlist=["operations"])
-        class_ = getattr(module, name)
+        from . import operations as nectar_ops
+
+        class_ = getattr(nectar_ops, name)
         return class_
 
     def operations(self) -> dict[str, int]:

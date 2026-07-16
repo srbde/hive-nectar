@@ -55,8 +55,9 @@ class Operation:
         return "Unknown Operation ID %d" % i
 
     def _getklass(self, name: str) -> type:
-        module = __import__("graphenebase.operations", fromlist=["operations"])
-        class_ = getattr(module, name)
+        from graphenebase import operations as graphene_ops
+
+        class_ = getattr(graphene_ops, name)
         return class_
 
     def __bytes__(self) -> bytes:
