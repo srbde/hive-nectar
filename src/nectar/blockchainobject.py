@@ -1,7 +1,7 @@
 import json
 import threading
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, cast
 
 from nectar.instance import shared_blockchain_instance
 
@@ -9,7 +9,7 @@ from nectar.instance import shared_blockchain_instance
 class ObjectCache(dict):
     def __init__(
         self,
-        initial_data: Optional[Dict[Any, Any]] = None,
+        initial_data: dict[Any, Any] | None = None,
         default_expiration: int = 10,
         auto_clean: bool = True,
     ) -> None:
@@ -95,14 +95,14 @@ class BlockchainObject(dict):
 
     def __init__(
         self,
-        data: Union[Dict[str, Any], int, str, Any],
-        klass: Optional[type] = None,
+        data: dict[str, Any] | int | str | Any,
+        klass: type | None = None,
         space_id: int = 1,
-        object_id: Optional[Any] = None,
+        object_id: Any | None = None,
         lazy: bool = False,
         use_cache: bool = True,
-        id_item: Optional[str] = None,
-        blockchain_instance: Optional[Any] = None,
+        id_item: str | None = None,
+        blockchain_instance: Any | None = None,
         *args,
         **kwargs,
     ) -> None:
@@ -152,11 +152,11 @@ class BlockchainObject(dict):
         else:
             self.id_item = "id"
         if klass and isinstance(data, klass) and hasattr(data, "get"):
-            mapping_data = cast(Dict[str, Any], data)
+            mapping_data = cast(dict[str, Any], data)
             self.identifier = mapping_data.get(self.id_item)
             super().__init__(mapping_data)
         elif isinstance(data, dict):
-            mapping_data = cast(Dict[str, Any], data)
+            mapping_data = cast(dict[str, Any], data)
             self.identifier = mapping_data.get(self.id_item)
             super().__init__(mapping_data)
         elif isinstance(data, int):
@@ -257,7 +257,7 @@ class BlockchainObject(dict):
         return super().__contains__(key)
 
     def __repr__(self) -> str:
-        return "<{} {}>".format(self.__class__.__name__, str(self.identifier))
+        return f"<{self.__class__.__name__} {str(self.identifier)}>"
 
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         return json.loads(str(json.dumps(self)))

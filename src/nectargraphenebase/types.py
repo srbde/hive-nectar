@@ -6,7 +6,7 @@ from collections.abc import Sequence
 
 # Move calendar import to avoid circular import issue in Python 3.13
 from datetime import datetime
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any
 
 # Import calendar only when needed to avoid circular imports
 timeformat = "%Y-%m-%dT%H:%M:%S%Z"
@@ -22,7 +22,7 @@ def varint(n: int) -> bytes:
     return data
 
 
-def varintdecode(data: Optional[Union[bytes, str]]) -> int:
+def varintdecode(data: bytes | str | None) -> int:
     """Varint decoding."""
     if data is None:
         raise ValueError("Cannot decode varint from None")
@@ -354,7 +354,7 @@ class Void:
 class Array:
     """Array."""
 
-    def __init__(self, d: List[Any]) -> None:
+    def __init__(self, d: list[Any]) -> None:
         self.data = d
         self.length = Varint32(len(self.data))
 
@@ -379,7 +379,7 @@ class Array:
 class PointInTime:
     """PointInTime."""
 
-    def __init__(self, d: Union[str, datetime]) -> None:
+    def __init__(self, d: str | datetime) -> None:
         self.data = d
 
     def __bytes__(self) -> bytes:
@@ -438,7 +438,7 @@ class Bool(Uint8):  # Bool = Uint8
 class Set(Array):  # Set = Array
     """Set."""
 
-    def __init__(self, d: List[Any]) -> None:
+    def __init__(self, d: list[Any]) -> None:
         super().__init__(d)
 
 
@@ -505,7 +505,7 @@ class Map:
     """Map."""
 
     def __init__(self, data: Sequence[Sequence[Any]]) -> None:
-        self.data: List[Tuple[Any, Any]] = [tuple(entry) for entry in data]  # type: ignore[arg-type]
+        self.data: list[tuple[Any, Any]] = [tuple(entry) for entry in data]  # type: ignore[arg-type]
 
     def __bytes__(self) -> bytes:
         """Returns bytes representation."""
@@ -544,11 +544,11 @@ class Enum8(Uint8):
     # List needs to be provided by super class
     options = []
 
-    def __init__(self, selection: Union[str, int]) -> None:
+    def __init__(self, selection: str | int) -> None:
         if selection not in self.options or (
             isinstance(selection, int) and len(self.options) < selection
         ):
-            raise ValueError("Options are {}. Given '{}'".format(str(self.options), selection))
+            raise ValueError(f"Options are {str(self.options)}. Given '{selection}'")
 
         super().__init__(self.options.index(selection))
 

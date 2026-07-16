@@ -1,5 +1,16 @@
-nectar.market module
-====================
+nectar.market package
+=====================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   nectar.market.core
+
+Module contents
+---------------
 
 .. automodule:: nectar.market
    :members:

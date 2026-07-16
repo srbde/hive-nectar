@@ -6,7 +6,7 @@ import os
 import re
 import unicodedata
 from binascii import hexlify, unhexlify
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Union
 
 import coincurve
 
@@ -64,8 +64,8 @@ def _is_on_curve(
 
 
 def _point_add(
-    p1: Optional[Tuple[int, int]], p2: Optional[Tuple[int, int]], p: int = SECP256K1_P
-) -> Optional[Tuple[int, int]]:
+    p1: tuple[int, int] | None, p2: tuple[int, int] | None, p: int = SECP256K1_P
+) -> tuple[int, int] | None:
     """
     Add two points on an elliptic curve over a prime field.
 
@@ -114,8 +114,8 @@ def _point_add(
 
 
 def _scalar_mult(
-    k: int, point: Optional[Tuple[int, int]], p: int = SECP256K1_P
-) -> Optional[Tuple[int, int]]:
+    k: int, point: tuple[int, int] | None, p: int = SECP256K1_P
+) -> tuple[int, int] | None:
     """
     Compute k * point on the secp256k1 curve using the binary (double-and-add) method.
 
@@ -144,7 +144,7 @@ def _scalar_mult(
     return result
 
 
-def _point_to_compressed(point: Tuple[int, int]) -> bytes:
+def _point_to_compressed(point: tuple[int, int]) -> bytes:
     """
     Return the 33-byte SEC compressed encoding of an EC point on secp256k1.
 
@@ -163,7 +163,7 @@ def _point_to_compressed(point: Tuple[int, int]) -> bytes:
     return prefix.to_bytes(1, "big") + x.to_bytes(32, "big")
 
 
-def _compressed_to_point(compressed: bytes) -> Tuple[int, int]:
+def _compressed_to_point(compressed: bytes) -> tuple[int, int]:
     """
     Convert a 33-byte SEC compressed public key to an (x, y) point on the secp256k1 curve.
 
@@ -202,7 +202,7 @@ def _compressed_to_point(compressed: bytes) -> Tuple[int, int]:
 
 
 # From <https://stackoverflow.com/questions/212358/binary-search-bisection-in-python/2233940#2233940>
-def binary_search(a: List[Any], x: Any, lo: int = 0, hi: Optional[int] = None) -> int:
+def binary_search(a: list[Any], x: Any, lo: int = 0, hi: int | None = None) -> int:
     """
     Locate the index of x in sorted sequence a using binary search.
 
@@ -232,10 +232,10 @@ class PasswordKey(Prefix):
 
     def __init__(
         self,
-        account: Optional[str],
+        account: str | None,
         password: str,
         role: str = "active",
-        prefix: Optional[str] = None,
+        prefix: str | None = None,
     ) -> None:
         self.set_prefix(prefix)
         self.account = account
@@ -289,7 +289,7 @@ class BrainKey(Prefix):
     """
 
     def __init__(
-        self, brainkey: Optional[str] = None, sequence: int = 0, prefix: Optional[str] = None
+        self, brainkey: str | None = None, sequence: int = 0, prefix: str | None = None
     ) -> None:
         self.set_prefix(prefix)
         if not brainkey:
@@ -344,7 +344,7 @@ class BrainKey(Prefix):
         """Suggest a new random brain key. Randomness is provided by the
         operating system using ``os.urandom()``.
         """
-        brainkey: List[str] = [""] * word_count
+        brainkey: list[str] = [""] * word_count
         dict_lines = BrainKeyDictionary.split(",")
         if not len(dict_lines) == 49744:
             raise AssertionError()
@@ -382,7 +382,7 @@ class Mnemonic:
         return self.to_mnemonic(os.urandom(strength // 8))
 
     # Adapted from <http://tinyurl.com/oxmn476>
-    def to_entropy(self, words: Union[str, List[str]]) -> bytes:
+    def to_entropy(self, words: str | list[str]) -> bytes:
         if not isinstance(words, list):
             words = words.split(" ")
         if len(words) not in [12, 15, 18, 21, 24]:
@@ -449,7 +449,7 @@ class Mnemonic:
         result_phrase = " ".join(result)
         return result_phrase
 
-    def check(self, mnemonic: Union[str, List[str]]) -> bool:
+    def check(self, mnemonic: str | list[str]) -> bool:
         """Checks the mnemonic word list is valid
         :param list mnemonic: mnemonic word list with length of 12, 15, 18, 21, 24
         :returns: True, when valid
@@ -501,7 +501,7 @@ class Mnemonic:
         return unicodedata.normalize("NFKD", txt)
 
     @classmethod
-    def to_seed(cls, mnemonic: Union[str, List[str]], passphrase: str = "") -> bytes:
+    def to_seed(cls, mnemonic: str | list[str], passphrase: str = "") -> bytes:
         """Returns a seed based on bip39
 
         :param str mnemonic: string containing a valid mnemonic word list
@@ -527,11 +527,11 @@ class MnemonicKey(Prefix):
 
     def __init__(
         self,
-        word_list: Optional[Union[str, List[str]]] = None,
+        word_list: str | list[str] | None = None,
         passphrase: str = "",
         account_sequence: int = 0,
         key_sequence: int = 0,
-        prefix: Optional[str] = None,
+        prefix: str | None = None,
     ) -> None:
         self.set_prefix(prefix)
         if word_list is not None:
@@ -543,7 +543,7 @@ class MnemonicKey(Prefix):
         self.prefix = prefix or ""
         self.path = "m/48'/13'/0'/%d'/%d'" % (self.account_sequence, self.key_sequence)
 
-    def set_mnemonic(self, word_list: Union[str, List[str]], passphrase: str = "") -> None:
+    def set_mnemonic(self, word_list: str | list[str], passphrase: str = "") -> None:
         mnemonic = Mnemonic()
         if not mnemonic.check(word_list):
             raise ValueError("Word list is not valid!")
@@ -589,7 +589,7 @@ class MnemonicKey(Prefix):
     def set_path_BIP48(
         self,
         network_index: int = 13,
-        role: Union[str, int] = "owner",
+        role: str | int = "owner",
         account_sequence: int = 0,
         key_sequence: int = 0,
     ) -> None:
@@ -674,7 +674,7 @@ class Address(Prefix):
 
     """
 
-    def __init__(self, address: str, prefix: Optional[str] = None) -> None:
+    def __init__(self, address: str, prefix: str | None = None) -> None:
         self.set_prefix(prefix)
         self._address = Base58(address, prefix=self.prefix)
 
@@ -684,7 +684,7 @@ class Address(Prefix):
         pubkey: Union[str, "PublicKey"],
         compressed: bool = True,
         version: int = 56,
-        prefix: Optional[str] = None,
+        prefix: str | None = None,
     ) -> "Address":
         """Load an address provided by the public key.
         Version: 56 => PTS
@@ -704,7 +704,7 @@ class Address(Prefix):
 
     @classmethod
     def derivesha256address(
-        cls, pubkey: Union[str, "PublicKey"], compressed: bool = True, prefix: Optional[str] = None
+        cls, pubkey: Union[str, "PublicKey"], compressed: bool = True, prefix: str | None = None
     ) -> "Address":
         """Derive address using ``RIPEMD160(SHA256(x))``"""
         pubkey = PublicKey(pubkey, prefix=prefix or Prefix.prefix)
@@ -719,7 +719,7 @@ class Address(Prefix):
 
     @classmethod
     def derivesha512address(
-        cls, pubkey: Union[str, "PublicKey"], compressed: bool = True, prefix: Optional[str] = None
+        cls, pubkey: Union[str, "PublicKey"], compressed: bool = True, prefix: str | None = None
     ) -> "Address":
         """Derive address using ``RIPEMD160(SHA512(x))``"""
         pubkey = PublicKey(pubkey, prefix=prefix or Prefix.prefix)
@@ -764,7 +764,7 @@ class GrapheneAddress(Address):
         pubkey: Union[str, "PublicKey"],
         compressed: bool = True,
         version: int = 56,
-        prefix: Optional[str] = None,
+        prefix: str | None = None,
     ) -> "GrapheneAddress":
         # Ensure this is a public key
         pubkey = PublicKey(pubkey, prefix=prefix or Prefix.prefix)
@@ -797,7 +797,7 @@ class PublicKey(Prefix):
 
     """
 
-    def __init__(self, pk: Union[str, "PublicKey"], prefix: Optional[str] = None) -> None:
+    def __init__(self, pk: Union[str, "PublicKey"], prefix: str | None = None) -> None:
         """Init PublicKey
         :param str pk: Base58 encoded public key
         :param str prefix: Network prefix (defaults to ``STM``)
@@ -928,7 +928,7 @@ class PublicKey(Prefix):
 
     @classmethod
     def from_privkey(
-        cls, privkey: Union[str, "PrivateKey"], prefix: Optional[str] = None
+        cls, privkey: Union[str, "PrivateKey"], prefix: str | None = None
     ) -> "PublicKey":
         """
         Derive a compressed public key from a private key and return a PublicKey instance.
@@ -982,7 +982,7 @@ class PrivateKey(Prefix):
     """
 
     def __init__(
-        self, wif: Optional[Union[str, "PrivateKey", Base58]] = None, prefix: Optional[str] = None
+        self, wif: Union[str, "PrivateKey", Base58] | None = None, prefix: str | None = None
     ) -> None:
         self.set_prefix(prefix)
         if wif is None:
@@ -1085,10 +1085,10 @@ class BitcoinAddress(Address):
     @classmethod
     def from_pubkey(
         cls,
-        pubkey: Union[str, PublicKey],
+        pubkey: str | PublicKey,
         compressed: bool = False,
         version: int = 56,
-        prefix: Optional[str] = None,
+        prefix: str | None = None,
     ) -> "BitcoinAddress":
         # Ensure this is a public key
         pubkey_obj = PublicKey(pubkey)

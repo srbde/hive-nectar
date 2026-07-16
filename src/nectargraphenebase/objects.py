@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Union
+from typing import Any
 
 from nectargraphenebase.types import Id, JsonObj, Optional, String
 
@@ -7,7 +7,7 @@ from .operationids import operations
 
 
 class Operation:
-    def __init__(self, op: Union[List[Any], Dict[str, Any], Any]) -> None:
+    def __init__(self, op: list[Any] | dict[str, Any] | Any) -> None:
         if isinstance(op, list) and len(op) == 2:
             if isinstance(op[0], int):
                 self.opId = op[0]
@@ -44,7 +44,7 @@ class Operation:
             self.name = type(self.op).__name__.lower()  # also store name
             self.opId = self.operations()[self.name]
 
-    def operations(self) -> Dict[str, int]:
+    def operations(self) -> dict[str, int]:
         return operations
 
     def getOperationNameForId(self, i: int) -> str:
@@ -99,7 +99,7 @@ class GrapheneObject:
                 b += bytes(value)
         return b
 
-    def __json__(self) -> Dict[str, Any]:
+    def __json__(self) -> dict[str, Any]:
         if self.data is None:
             return {}
         d = {}  # JSON output is *not* ordered
@@ -119,10 +119,10 @@ class GrapheneObject:
     def __str__(self) -> str:
         return json.dumps(self.__json__())
 
-    def toJson(self) -> Dict[str, Any]:
+    def toJson(self) -> dict[str, Any]:
         return self.__json__()
 
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         return self.__json__()
 
 

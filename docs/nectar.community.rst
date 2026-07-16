@@ -1,5 +1,16 @@
-nectar.community module
-=======================
+nectar.community package
+========================
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   nectar.community.core
+
+Module contents
+---------------
 
 .. automodule:: nectar.community
    :members:

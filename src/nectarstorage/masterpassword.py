@@ -170,7 +170,7 @@ class MasterPassword:
         if not self.unlocked():
             raise WalletLocked
         aes = AESCipher(self.password)
-        return "{}${}".format(self._derive_checksum(self.masterkey), aes.encrypt(self.masterkey))
+        return f"{self._derive_checksum(self.masterkey)}${aes.encrypt(self.masterkey)}"
 
     def change_password(self, newpassword):
         """Change the password that allows to decrypt the master key"""
@@ -201,7 +201,7 @@ class MasterPassword:
         if not self.unlocked():
             raise WalletLocked
         aes = AESCipher(self.masterkey)
-        return "{}${}".format(self.deriveChecksum(txt), aes.encrypt(txt))
+        return f"{self.deriveChecksum(txt)}${aes.encrypt(txt)}"
 
     def decrypt_text(self, enctxt):
         """Decrypt the content according to BIP38

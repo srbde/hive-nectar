@@ -1,7 +1,7 @@
 import hashlib
 import struct
 from binascii import hexlify, unhexlify
-from typing import Any, Tuple
+from typing import Any
 
 import coincurve
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -85,7 +85,7 @@ def init_aes_bts(shared_secret: str, nonce: int) -> Any:
     return CryptographyAESWrapper(key, iv)
 
 
-def init_aes2(shared_secret: str, nonce: int) -> Tuple[Any, int]:
+def init_aes2(shared_secret: str, nonce: int) -> tuple[Any, int]:
     """Initialize AES instance
     :param hex shared_secret: Shared Secret to use as encryption key
     :param int nonce: Random nonce
@@ -200,7 +200,7 @@ def encode_memo(priv: Any, pub: PublicKey, nonce: int, message: str, **kwargs: A
     return "#" + base58encode(hexlify(bytes(tx)).decode("ascii"))
 
 
-def extract_memo_data(message: str) -> Tuple[PublicKey, PublicKey, str, int, bytes]:
+def extract_memo_data(message: str) -> tuple[PublicKey, PublicKey, str, int, bytes]:
     """Returns the stored pubkey keys, nonce, checksum and encrypted message of a memo"""
     raw = base58decode(message[1:])
     from_key = PublicKey(raw[:66])

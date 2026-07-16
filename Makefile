@@ -1,4 +1,4 @@
-.PHONY: clean-pyc clean-build docs generate-versions
+.PHONY: clean-pyc clean-build docs
 
 clean: clean-build clean-pyc
 
@@ -13,9 +13,6 @@ clean-pyc:
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 
-generate-versions:
-	python3 generate_versions.py
-
 lint:
 	uv run ruff check src
 
@@ -28,7 +25,7 @@ imports:
 test:
 	python3 -m pytest -v
 
-build: generate-versions
+build:
 	uv build
 
 install: build
@@ -44,7 +41,7 @@ check:
 dev-setup:
 	uv sync --dev
 
-dist: generate-versions
+dist:
 	uv build
 	uvx uv-publish@latest --repo pypi
 
@@ -53,7 +50,7 @@ tag:
 	echo "Creating git tag v$$VERSION" && \
 	git tag -a "v$$VERSION" -m "Release v$$VERSION"
 
-test-dist: generate-versions
+test-dist:
 	uv build
 	uvx uv-publish@latest --repo testpypi
 

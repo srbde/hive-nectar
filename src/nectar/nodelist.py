@@ -1,10 +1,8 @@
 import json
 import logging
-import tempfile
 import threading
 import time
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx2
 
@@ -33,16 +31,14 @@ REQUEST_TIMEOUT = 10  # seconds
 CACHE_DURATION = 300  # 5 minutes cache
 
 # Global cache for node data
-_cached_nodes: Optional[List[Dict[str, Any]]] = None
+_cached_nodes: list[dict[str, Any]] | None = None
 _cache_timestamp: float = 0
 _cache_lock = threading.Lock()
 
-CACHE_FILE = Path(tempfile.gettempdir()) / "nectar_nodes_cache.json"
 
-
-def extract_nodes_from_raw(raw: Any, source: str) -> Optional[List[Dict[str, Any]]]:
+def extract_nodes_from_raw(raw: Any, source: str) -> list[dict[str, Any]] | None:
     if isinstance(raw, list):
-        nodes: List[Dict[str, Any]] = []
+        nodes: list[dict[str, Any]] = []
         for item in raw:
             if isinstance(item, dict):
                 nodes.append(item)
@@ -54,7 +50,7 @@ def extract_nodes_from_raw(raw: Any, source: str) -> Optional[List[Dict[str, Any
         return None
 
 
-def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
+def fetch_beacon_nodes(force: bool = False) -> list[dict[str, Any]] | None:
     """Fetch node list from PeakD beacon API with caching.
 
     Returns:
@@ -65,28 +61,11 @@ def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
     current_time = time.time()
 
     # Return cached data if still valid (memory)
-    with _cache_lock:
-        if _cached_nodes is not None and current_time - _cache_timestamp < CACHE_DURATION:
-            log.debug("Using cached beacon nodes (memory)")
-            return _cached_nodes
-
-    # Try to load from disk cache if memory cache is empty or expired
-    if CACHE_FILE.exists():
-        try:
-            mtime = CACHE_FILE.stat().st_mtime
-            if current_time - mtime < CACHE_DURATION:
-                with open(CACHE_FILE, "r") as f:
-                    raw = json.load(f)
-                # Ensure cached data is a list of dicts and coerce to the expected type
-                nodes = extract_nodes_from_raw(raw, "disk cache")
-                if nodes is not None:
-                    with _cache_lock:
-                        _cached_nodes = nodes
-                        _cache_timestamp = mtime
-                    log.debug("Using cached beacon nodes (disk)")
-                    return nodes
-        except (IOError, json.JSONDecodeError) as e:
-            log.warning(f"Failed to read disk cache: {e}")
+    if not force:
+        with _cache_lock:
+            if _cached_nodes is not None and current_time - _cache_timestamp < CACHE_DURATION:
+                log.debug("Using cached beacon nodes (memory)")
+                return _cached_nodes
 
     log.debug("Fetching fresh nodes from beacon API")
 
@@ -106,47 +85,30 @@ def fetch_beacon_nodes() -> Optional[List[Dict[str, Any]]]:
             # Validate that the beacon returned a list of node dicts
             nodes = extract_nodes_from_raw(raw, "beacon API")
             if nodes is not None:
-                # Cache the successful result
-                _cached_nodes = nodes
-                _cache_timestamp = current_time
-                # Write to disk cache
-                try:
-                    with open(CACHE_FILE, "w") as f:
-                        json.dump(nodes, f)
-                except (IOError, OSError) as e:
-                    log.warning(f"Failed to write to disk cache: {e}")
+                # Cache the successful result in memory
+                with _cache_lock:
+                    _cached_nodes = nodes
+                    _cache_timestamp = current_time
                 return nodes
-            # else: try next beacon URL
         except (httpx2.RequestError, httpx2.HTTPStatusError, json.JSONDecodeError, ValueError) as e:
             log.warning(f"Failed to fetch nodes from beacon API {beacon_url}: {e}")
-
         except Exception as e:
             log.error(f"Unexpected error fetching nodes from beacon API {beacon_url}: {e}")
 
     # Return cached data even if expired, as fallback
-    if _cached_nodes is not None:
-        log.info("Using expired cached nodes as fallback")
-        return _cached_nodes
+    with _cache_lock:
+        if _cached_nodes is not None:
+            log.info("Using expired cached nodes as fallback")
+            return _cached_nodes
     return None
 
 
 def clear_beacon_cache() -> None:
-    """Clear the cached beacon node data.
-
-    This forces the next NodeList() instantiation or update_nodes() call
-    to fetch fresh data from the beacon API.
-    """
+    """Clear the cached beacon node data in memory."""
     global _cached_nodes, _cache_timestamp
     with _cache_lock:
         _cached_nodes = None
         _cache_timestamp = 0
-
-    if CACHE_FILE.exists():
-        try:
-            CACHE_FILE.unlink()
-        except OSError as e:
-            log.warning(f"Failed to remove disk cache: {e}")
-
     log.debug("Beacon node cache cleared")
 
 
@@ -163,37 +125,35 @@ class NodeList(list):
     """
 
     def __init__(self):
-        """Initialize NodeList with nodes from beacon API or static fallback."""
+        """Initialize NodeList with nodes from beacon API or static fallback without blocking."""
         super().__init__()
         self._refresh_nodes()
 
     def _refresh_nodes(self) -> None:
-        """Refresh node list from beacon API or use static fallback."""
-        beacon_nodes = fetch_beacon_nodes()
+        """Refresh node list from memory cache or static fallback, and trigger async update."""
+        loaded = False
+        with _cache_lock:
+            if _cached_nodes:
+                nodes = _cached_nodes
+                internal_nodes = []
+                for node in nodes:
+                    if node.get("score", 0) > 0:
+                        internal_nodes.append(
+                            {
+                                "url": node["endpoint"],
+                                "version": node.get("version", "unknown"),
+                                "type": "appbase",
+                                "owner": node.get("name", "unknown"),
+                                "hive": True,
+                                "score": node.get("score", 0),
+                            }
+                        )
+                internal_nodes.sort(key=lambda x: x["score"], reverse=True)
+                self[:] = internal_nodes
+                loaded = True
+                log.info(f"Loaded {len(internal_nodes)} nodes from PeakD beacon API memory cache")
 
-        if beacon_nodes:
-            # Convert beacon format to our internal format
-            nodes = []
-            for node in beacon_nodes:
-                # Only include nodes with decent performance (score > 0)
-                if node.get("score", 0) > 0:
-                    nodes.append(
-                        {
-                            "url": node["endpoint"],
-                            "version": node.get("version", "unknown"),
-                            "type": "appbase",  # All beacon nodes are appbase
-                            "owner": node.get("name", "unknown"),
-                            "hive": True,
-                            "score": node.get("score", 0),
-                        }
-                    )
-
-            # Sort by score (highest first)
-            nodes.sort(key=lambda x: x["score"], reverse=True)
-            super().__init__(nodes)
-            log.info(f"Loaded {len(nodes)} nodes from PeakD beacon API")
-        else:
-            # Use static fallback
+        if not loaded:
             nodes = [
                 {
                     "url": url,
@@ -205,8 +165,35 @@ class NodeList(list):
                 }
                 for url in STATIC_NODES
             ]
-            super().__init__(nodes)
+            self[:] = nodes
             log.warning(f"Using static fallback nodes ({len(nodes)} nodes)")
+
+        threading.Thread(target=self._async_fetch, daemon=True).start()
+
+    def _async_fetch(self) -> None:
+        try:
+            beacon_nodes = fetch_beacon_nodes()
+            if beacon_nodes:
+                internal_nodes = []
+                for node in beacon_nodes:
+                    if node.get("score", 0) > 0:
+                        internal_nodes.append(
+                            {
+                                "url": node["endpoint"],
+                                "version": node.get("version", "unknown"),
+                                "type": "appbase",
+                                "owner": node.get("name", "unknown"),
+                                "hive": True,
+                                "score": node.get("score", 0),
+                            }
+                        )
+                internal_nodes.sort(key=lambda x: x["score"], reverse=True)
+                self[:] = internal_nodes
+                log.info(
+                    f"Background thread loaded {len(internal_nodes)} nodes from PeakD beacon API"
+                )
+        except Exception as e:
+            log.warning(f"Failed to fetch beacon nodes in background: {e}")
 
     def get_nodes(
         self,
@@ -219,7 +206,7 @@ class NodeList(list):
         not_working: bool = False,
         normal: bool = False,
         appbase: bool = True,
-    ) -> List[str]:
+    ) -> list[str]:
         """Return a list of node URLs filtered and sorted by score.
 
         Args:
@@ -282,7 +269,7 @@ class NodeList(list):
         not_working: bool = False,
         wss: bool = True,
         https: bool = True,
-    ) -> List[str]:
+    ) -> list[str]:
         """Return a list of Hive node URLs filtered and ordered by score.
 
         Args:
@@ -304,7 +291,7 @@ class NodeList(list):
             normal=False,
         )
 
-    def get_testnet(self, testnet: bool = True, testnetdev: bool = False) -> List[str]:
+    def get_testnet(self, testnet: bool = True, testnetdev: bool = False) -> list[str]:
         """Return a list of testnet node URLs (currently unavailable).
 
         Note: The PeakD beacon API does not provide testnet nodes. This method
@@ -327,19 +314,35 @@ class NodeList(list):
         )
 
     def update_nodes(self, weights: Any = None, blockchain_instance: Any = None) -> None:
-        """Refresh nodes from beacon API.
-
-        This method replaces the complex update logic with a simple refresh
-        from the beacon API and clears the cache to force fresh data.
+        """Refresh nodes from beacon API synchronously.
 
         Args:
             weights: Ignored (beacon provides its own scoring)
             blockchain_instance: Ignored (beacon API is independent)
         """
         clear_beacon_cache()
-        self._refresh_nodes()
+        beacon_nodes = fetch_beacon_nodes(force=True)
+        if beacon_nodes:
+            internal_nodes = []
+            for node in beacon_nodes:
+                if node.get("score", 0) > 0:
+                    internal_nodes.append(
+                        {
+                            "url": node["endpoint"],
+                            "version": node.get("version", "unknown"),
+                            "type": "appbase",
+                            "owner": node.get("name", "unknown"),
+                            "hive": True,
+                            "score": node.get("score", 0),
+                        }
+                    )
+            internal_nodes.sort(key=lambda x: x["score"], reverse=True)
+            self[:] = internal_nodes
+            log.info(f"Loaded {len(internal_nodes)} nodes from PeakD beacon API")
+        else:
+            self._refresh_nodes()
 
-    def update(self, node_list: List[str]) -> None:
+    def update(self, node_list: list[str]) -> None:
         """Update node list (not implemented with beacon API).
 
         Args:
@@ -349,8 +352,8 @@ class NodeList(list):
         self._refresh_nodes()
 
     def get_node_answer_time(
-        self, node_list: Optional[List[str]] = None, verbose: bool = False
-    ) -> List[Dict[str, float]]:
+        self, node_list: list[str] | None = None, verbose: bool = False
+    ) -> list[dict[str, float]]:
         """Get node response times (deprecated with beacon API).
 
         The beacon API already provides performance scoring, so this method

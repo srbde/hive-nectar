@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Dict, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from nectargraphenebase.account import PublicKey
 from nectargraphenebase.chains import known_chains
@@ -44,7 +45,7 @@ class Ledger_Transaction(GrapheneUnsigned_Transaction):
     def getOperationKlass(self) -> type[Operation]:
         return Operation
 
-    def getKnownChains(self) -> Dict[str, Any]:
+    def getKnownChains(self) -> dict[str, Any]:
         """
         Return the mapping of known blockchain chains available to this transaction.
 

@@ -3,7 +3,7 @@ import json
 import logging
 from binascii import hexlify, unhexlify
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from asn1crypto.core import OctetString
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
@@ -64,7 +64,7 @@ class GrapheneObjectASN1:
                 output += OctetString(b).dump()
         return output
 
-    def __json__(self) -> Dict[str, Any]:
+    def __json__(self) -> dict[str, Any]:
         if self.data is None:
             return {}
         d = {}  # JSON output is *not* ordered
@@ -84,10 +84,10 @@ class GrapheneObjectASN1:
     def __str__(self) -> str:
         return json.dumps(self.__json__())
 
-    def toJson(self) -> Dict[str, Any]:
+    def toJson(self) -> dict[str, Any]:
         return self.__json__()
 
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         return self.__json__()
 
 
@@ -160,19 +160,19 @@ class Unsigned_Transaction(GrapheneObjectASN1):
     def getOperationKlass(self) -> type[Operation]:
         return Operation
 
-    def derSigToHexSig(self, s: Union[str, bytes]) -> str:
+    def derSigToHexSig(self, s: str | bytes) -> str:
         """Format DER to HEX signature"""
         if isinstance(s, bytes):
             der_bytes = s
         else:
             der_bytes = unhexlify(s)
         r, s_val = decode_dss_signature(der_bytes)
-        return "{:064x}{:064x}".format(r, s_val)
+        return f"{r:064x}{s_val:064x}"
 
-    def getKnownChains(self) -> Dict[str, Any]:
+    def getKnownChains(self) -> dict[str, Any]:
         return known_chains
 
-    def getChainParams(self, chain: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+    def getChainParams(self, chain: str | dict[str, Any]) -> dict[str, Any]:
         # Which network are we on:
         chains = self.getKnownChains()
         if isinstance(chain, str) and chain in chains:
@@ -185,7 +185,7 @@ class Unsigned_Transaction(GrapheneObjectASN1):
             raise Exception("sign() needs a 'chain_id' in chain params!")
         return chain_params
 
-    def deriveDigest(self, chain: Union[str, Dict[str, Any]]) -> None:
+    def deriveDigest(self, chain: str | dict[str, Any]) -> None:
         chain_params = self.getChainParams(chain)
         # Chain ID
         self.chainid = chain_params["chain_id"]
@@ -231,8 +231,8 @@ class Unsigned_Transaction(GrapheneObjectASN1):
             raise ValueError(f"Unknown role: {role}")
 
     def build_apdu(
-        self, path: str = "48'/13'/0'/0'/0'", chain: Optional[Union[str, Dict[str, Any]]] = None
-    ) -> List[bytes]:
+        self, path: str = "48'/13'/0'/0'/0'", chain: str | dict[str, Any] | None = None
+    ) -> list[bytes]:
         if chain is None:
             raise ValueError("chain parameter is required for build_apdu")
         self.deriveDigest(chain)

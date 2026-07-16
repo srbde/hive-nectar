@@ -27,7 +27,6 @@ classifiers = [
   "Topic :: Office/Business :: Financial",
 ]
 dependencies = [
-  "appdirs",
   "asn1crypto",
   "click",
   "coincurve>=20.0.0",
@@ -62,11 +61,11 @@ dev = [
   "parameterized",
   "pytest",
   "pytest-mock",
+  "pytest-recording",
   "ruff",
   "sphinx",
   "sphinx-click",
   "sphinx-rtd-theme",
-  "tomli",
 ]
 
 [tool.uv]
@@ -97,7 +96,7 @@ ignore = ["E501"]
 "__init__.py" = ["E402"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests/unit"]
 python_files = ["test_*.py"]
 norecursedirs = [
   ".git",

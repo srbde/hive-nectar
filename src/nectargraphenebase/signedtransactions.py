@@ -2,7 +2,7 @@ import hashlib
 import logging
 from binascii import hexlify, unhexlify
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
@@ -97,19 +97,19 @@ class Signed_Transaction(GrapheneObject):
     def getOperationKlass(self) -> type[Operation]:
         return Operation
 
-    def derSigToHexSig(self, s: Union[str, bytes]) -> str:
+    def derSigToHexSig(self, s: str | bytes) -> str:
         """Format DER to HEX signature"""
         if isinstance(s, bytes):
             der_bytes = s
         else:
             der_bytes = unhexlify(s)
         r, s_val = decode_dss_signature(der_bytes)
-        return "{:064x}{:064x}".format(r, s_val)
+        return f"{r:064x}{s_val:064x}"
 
-    def getKnownChains(self) -> Dict[str, Any]:
+    def getKnownChains(self) -> dict[str, Any]:
         return known_chains
 
-    def getChainParams(self, chain: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+    def getChainParams(self, chain: str | dict[str, Any]) -> dict[str, Any]:
         # Which network are we on:
         chains = self.getKnownChains()
         if isinstance(chain, str) and chain in chains:
@@ -122,7 +122,7 @@ class Signed_Transaction(GrapheneObject):
             raise Exception("sign() needs a 'chain_id' in chain params!")
         return chain_params
 
-    def deriveDigest(self, chain: Union[str, Dict[str, Any]]) -> None:
+    def deriveDigest(self, chain: str | dict[str, Any]) -> None:
         chain_params = self.getChainParams(chain)
         # Chain ID
         self.chainid = chain_params["chain_id"]
@@ -142,10 +142,10 @@ class Signed_Transaction(GrapheneObject):
 
     def verify(
         self,
-        pubkeys: Optional[List[Any]] = None,
-        chain: Optional[Union[str, Dict[str, Any]]] = None,
+        pubkeys: list[Any] | None = None,
+        chain: str | dict[str, Any] | None = None,
         recover_parameter: bool = False,
-    ) -> List[Any]:
+    ) -> list[Any]:
         """Returned pubkeys have to be checked if they are existing"""
         if not chain:
             raise ValueError("chain parameter is required")
@@ -192,7 +192,7 @@ class Signed_Transaction(GrapheneObject):
         return pubKeysFound
 
     def sign(
-        self, wifkeys: Union[str, List[str]], chain: Optional[Union[str, Dict[str, Any]]] = None
+        self, wifkeys: str | list[str], chain: str | dict[str, Any] | None = None
     ) -> "Signed_Transaction":
         """Sign the transaction with the provided private keys.
 

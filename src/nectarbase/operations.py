@@ -2,7 +2,7 @@ import json
 import re
 from binascii import hexlify
 from collections import OrderedDict
-from typing import Any, Tuple
+from typing import Any
 
 from nectargraphenebase.account import PublicKey
 from nectargraphenebase.types import (
@@ -37,7 +37,7 @@ from .objects import (
 default_prefix = "STM"
 
 
-def check_for_class(self: Any, args: Tuple[Any, ...]) -> bool:
+def check_for_class(self: Any, args: tuple[Any, ...]) -> bool:
     if isArgsThisClass(self, args):
         self.data = args[0].data
         return True

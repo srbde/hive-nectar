@@ -190,8 +190,8 @@ class InRamPlainTokenStore(InRamStore, TokenInterface):
     def getPublicNames(self):
         return [k for k, v in self.items()]
 
-    def getPrivateKeyForPublicKey(self, pub):
-        return self.get(str(pub), None)
+    def getTokenForName(self, name):
+        return self.get(str(name), None)
 
     def add(self, token, name=None):
         if name is None:
@@ -224,8 +224,8 @@ class SqlitePlainTokenStore(SQLiteStore, TokenInterface):
     def getPublicNames(self):
         return [k for k, v in self.items()]
 
-    def getPrivateKeyForPublicKey(self, pub):
-        return self[str(pub)]
+    def getTokenForName(self, name):
+        return self.get(str(name), None)
 
     def add(self, token, name=None):
         if name is None:
@@ -235,7 +235,7 @@ class SqlitePlainTokenStore(SQLiteStore, TokenInterface):
         self[str(name)] = str(token)
 
     def updateToken(self, name, token):
-        self[str(name)] = str(token)  # From Masterpassword
+        self[str(name)] = str(token)
 
     def delete(self, key):
         SQLiteStore.delete(self, str(key))
@@ -259,8 +259,8 @@ class TokenEncryption(MasterPassword, EncryptedTokenInterface):
     def getPublicNames(self):
         return [k for k, v in self.items()]
 
-    def getPrivateKeyForPublicKey(self, pub):
-        token = self.get(str(pub), None)
+    def getTokenForName(self, name):
+        token = self.get(str(name), None)
         if token:
             return self.decrypt_text(token)  # From Masterpassword
 

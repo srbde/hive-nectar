@@ -1,8 +1,182 @@
 Changelog
 =========
 
+1.0.6 - 2026-06-20
+------------------
+
+Features
+~~~~~~~~
+
+- **Background Node Health Monitoring**:
+  Introduced a non-blocking background daemon monitoring loop in ``NodePoolManager``
+  that periodically probes node latencies and head blocks, ensuring proactive failover
+  routing decisions without blocking main request threads.
+
+Refactoring & Optimization
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **Cleanup**:
+  - Refactored legacy ``dict`` inheritance in model classes (``Amount``, ``Asset``, and ``Price``) and caching layers with clean ``MutableMapping`` wrappers to resolve Liskov Substitution Principle (LSP) violations and type checking diagnostics.
+  - Deleted the unused ``asciichart`` plotting module and all its tests and documentation.
+  - Inherited ``StoreInterface`` from ``collections.abc.MutableMapping`` to simplify dictionary/mapping boilerplate.
+  - Removed the third-party ``appdirs`` dependency and replaced it with standard-library-based user directory lookup using ``os`` and ``sys``.
+  - Simplified type checks in ``AESCipher.str_to_bytes`` using ``isinstance(data, str)``.
+  - Optimized ``InRamStore.wipe()`` to utilize ``self.clear()``.
+  - Optimized dynamic query building by replacing JSON-based deep-copy hacks with ``copy.deepcopy``.
+  - Simplified package versioning by removing ``generate_versions.py`` and the ``tomli`` dev dependency, using standard library ``importlib.metadata`` for dynamic version resolution.
+  - Cleaned up the directory structure by deleting empty directories.
+
+1.0.5 - 2026-05-30
+------------------
+
+Features
+~~~~~~~~
+
+- **Async RPC Client (``nectarapi``)**:
+  Implemented the ``AsyncGrapheneRPC`` and ``AsyncNodeRPC`` classes inside the
+  ``nectarapi`` package, permitting fully asynchronous, non-blocking JSON-RPC
+  requests to Hive nodes.
+
+  - Retained complete backwards-compatibility, ensuring synchronous clients and
+    existing scripts function exactly as they did before.
+  - Standardized ``__getattr__`` dynamic method resolution to return coroutines
+    for all async RPC operations.
+  - Implemented lazy, process-wide connection pooling for async clients with
+    full proxy and basic-auth support.
+
+- **Examples**:
+  Added ``async_rpc_example.py`` showing the asynchronous clients in action.
+
+1.0.4 - 2026-05-30
+------------------
+
+
+Refactoring
+~~~~~~~~~~~
+
+- **Phase 5: Wallet & Key Storage Deconstruction**:
+  Deconstructed the monolithic ``wallet.py`` and ``storage.py`` into a modular
+  package under ``src/nectar/wallet/``.
+
+  - Moved ``Wallet`` class to ``src/nectar/wallet/core.py`` and updated its
+    internal relative imports to absolute imports.
+  - Relocated configuration defaults and SQLite key store defaults to
+    ``src/nectar/wallet/storage.py``.
+  - Replaced original files with clean facades ``src/nectar/wallet.py`` and
+    ``src/nectar/storage.py`` pointing to the new modules, ensuring 100%
+    backward compatibility.
+
+- **Phase 7: Feature-Specific Services Deconstruction**:
+  Modularized domain services:
+
+  - Extracted ``Market`` logic into ``src/nectar/market/``.
+  - Extracted ``Community`` logic into ``src/nectar/community/``.
+  - Extracted ``Discussions`` query definitions and streams into ``src/nectar/discussions/``.
+  - Extracted ``RC`` (Resource Credit) cost calculations into ``src/nectar/rc/``.
+  - Extracted encrypted/decrypted ``Memo`` and custom JSON ``Message`` handling into ``src/nectar/memo/``.
+  - Replaced original root files with backward-compatible facades.
+
+- **Monolith Deconstruction (Priority 1 & 2)**:
+  Modularized key classes:
+
+  - Extracted ``BlockChainInstance`` into ``src/nectar/blockchaininstance/``.
+  - Extracted ``Witness`` and query list classes into ``src/nectar/witness/``.
+  - Replaced original root files with backward-compatible facades.
+
+- **Phase 8: Utility & Integration Layer**:
+  Modularized miscellaneous helpers:
+
+  - Extracted formatting, imageuploader, snapshot, and HAF logic into ``src/nectar/utils/``.
+  - Configured lazy loading/selective exports to prevent circular imports during package initialization.
+
+- **NodeList & Caching Fixes**:
+  Removed unstable disk caching (``/tmp/nectar_nodes_cache.json``) to resolve FileNotFoundError races. Converted ``update_nodes()`` to run synchronously to fix the issue where CLI updates retrieved only static fallback nodes.
+
+
+1.0.3 - 2026-05-29
+------------------
+
+Refactoring
+~~~~~~~~~~~
+
+- **Phase 2: Split the CLI**:
+  Deconstructed the monolithic ``src/nectar/cli.py`` into a modular Click
+  package under ``src/nectar/cli/``.
+
+  - Created modular sub-command modules: ``account.py``, ``market.py``,
+    ``post.py``, ``wallet.py``, and ``utils.py``.
+  - Replaced ``src/nectar/cli.py`` with a clean facade that forwards to
+    ``nectar.cli``.
+
+- **Phase 4: Core Domain Deconstruction**:
+  Split the monolithic ``Account``, ``Comment``, and ``Blockchain`` classes
+  into focused, modular packages:
+
+  - ``src/nectar/account/``: Separated into ``models.py``, ``calculator.py``,
+    ``queries.py``, and ``operations.py``.
+  - ``src/nectar/comment/``: Separated into ``models.py`` and ``operations.py``.
+  - ``src/nectar/blockchain/``: Separated into ``client.py`` and
+    ``concurrency.py``.
+  - Replaced original files with backward-compatible facades exporting the
+    original class signatures.
+
+- **Bug Fix**:
+  Resolved relative import issues (``from .comment``, ``from .discussions``,
+  ``from .memo``) introduced during core deconstruction.
+
+1.0.2 - 2026-05-29
+------------------
+
+Features
+~~~~~~~~
+
+- **GP_6: Async Multi-Endpoint RPC Failover** (``GP_6-nectar-failover``):
+  Eliminates the "limping RPC" problem by replacing the static HTTP
+  transport with a dynamic, self-healing connection pool.
+
+  - New ``NodePoolManager`` (``nectarapi/pool.py``) tracks all configured
+    RPC endpoints in parallel, scoring each with a **multi-factor penalty**:
+    ``Penalty = latency_ms + (block_drift × 100)``. Nodes lagging more than
+    15 blocks behind the pool's max head height are automatically demoted
+    with a massive penalty (100 000 ms) and marked unhealthy.
+  - New ``FailoverSyncTransport`` and ``FailoverAsyncTransport``
+    (``nectarapi/transports.py``) subclass the ``httpx2`` low-level transport
+    layer and transparently rewrite request URLs to the current best-scored
+    node. On ``5xx`` responses or connection errors the next-best node is
+    tried immediately without any changes to calling code.
+  - ``Nodes`` (``nectarapi/node.py``) now delegates active-node selection to
+    ``NodePoolManager`` while preserving 100% backward-compatible public API
+    (``working_nodes_count``, ``increase_error_cnt``,
+    ``sleep_and_check_retries``, etc.).
+  - ``GrapheneRPC.rpcconnect`` mounts ``FailoverSyncTransport`` automatically
+    when multiple node URLs are configured.
+  - ``BlockChainInstance.connect`` exposes ``self.client``
+    (``httpx2.Client``) and ``self.async_client`` (``httpx2.AsyncClient``)
+    with failover transports pre-mounted for direct use in async scripts.
+  - ``NodeList`` (``nectar/nodelist.py``) init is now **non-blocking**:
+    starts immediately from disk cache or static fallback, and refreshes
+    from the PeakD beacon API in a background daemon thread.
+
+- **Tests**: 32 new fully offline unit tests in
+  ``tests/unit/test_failover.py`` cover ``RPCNode``, ``NodePoolManager``
+  penalty scoring and thread safety, ``Nodes`` adapter, sync/async transport
+  failover, and end-to-end routing integration.
+
+1.0.1 - 2026-05-29
+------------------
+
+Maintenance
+~~~~~~~~~~~
+
+- **Tests**: Modernized the test suite structure. Rewrote utility tests (``test_utils.py``) to use ``pytest`` and pure unit test functions in ``tests/unit/test_utils.py``.
+- **Test Isolation**: Moved fragile legacy integration tests to ``tests/legacy/`` and prefixed directories with ``legacy_`` to prevent Python path shadowing conflicts. Cleaned up the root ``tests/conftest.py`` and moved VCR/monkeypatching configuration into ``tests/legacy/conftest.py``.
+- **Cryptography Tests**: Migrated and modernized the entire offline cryptography unit test suite (``test_aes.py``, ``test_base58.py``, ``test_bip32.py``, ``test_bip38.py``, ``test_ecdsa.py``, ``test_key_format.py``, ``test_tweak_add.py``, ``test_ec_basic.py``) into ``tests/unit/`` using standard pytest assertions, fixtures, and parameterizations.
+- **API Contract & Shape Verification**: Added offline API contract signature checking (``test_api_signatures.py``) and mock JSON-RPC response shape verification (``test_api_shapes.py``) using static json payloads to protect the public API from future backward-compatibility breaks.
+- **VCR**: Resolved connection pool leaks and deadlocks under VCR recording/playback by override patching default connection limits.
+
 1.0.0 - 2026-05-22
 ------------------
+
 
 Major Changes
 ~~~~~~~~~~~~~

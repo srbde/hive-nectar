@@ -10,11 +10,8 @@ logging.basicConfig(level=logging.INFO)
 class DemoBot:
     def comment(self, comment_event):
         print(
-            "Comment by {} on post {} by {}:".format(
-                comment_event["author"],
-                comment_event["parent_permlink"],
-                comment_event["parent_author"],
-            )
+            f"Comment by {comment_event['author']} on post "
+            f"{comment_event['parent_permlink']} by {comment_event['parent_author']}:"
         )
         print(comment_event["body"])
         print()

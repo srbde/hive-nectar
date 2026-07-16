@@ -1,7 +1,7 @@
 import logging
 import re
 import time
-from typing import Any, List, Optional, Union
+from typing import Any, Union
 
 from .exceptions import CallRetriesReached, NumRetriesReached
 
@@ -18,38 +18,50 @@ class Node:
         return self.url
 
 
-class Nodes(list[Node]):
-    """Stores Node URLs and error counts"""
+class Nodes(list):
+    """Stores Node URLs and error counts, backed by a NodePoolManager for smart failover."""
 
     def __init__(
         self,
-        urls: Union[str, "Nodes", List[Any], tuple, set, None],
+        urls: Union[str, "Nodes", list[Any], tuple, set, None],
         num_retries: int,
         num_retries_call: int,
     ) -> None:
-        self.set_node_urls(urls)
+        super().__init__()
         self.num_retries = num_retries
         self.num_retries_call = num_retries_call
+        self.current_node_index = -1
+        self.freeze_current_node = False
+        self.pool_manager = None  # Set before __next__ is ever called
+        self.set_node_urls(urls)
 
-    def set_node_urls(self, urls: Union[str, "Nodes", List[Any], tuple, set, None]) -> None:
+    def set_node_urls(self, urls: Union[str, "Nodes", list[Any], tuple, set, None]) -> None:
         if isinstance(urls, str):
             url_list = re.split(r",|;", urls)
-            if url_list is None:
+            if not url_list:
                 url_list = [urls]
         elif isinstance(urls, Nodes):
+            # Use list slice to avoid calling our custom __iter__/__next__
             url_list = [urls[i].url for i in range(len(urls))]
         elif isinstance(urls, (list, tuple, set)):
-            url_list = urls
+            url_list = list(urls)
         elif urls is not None:
             url_list = [urls]
         else:
             url_list = []
-        super().__init__([Node(x) for x in url_list])
+
+        self.clear()
+        self.extend([Node(x) for x in url_list])
         self.current_node_index = -1
         self.freeze_current_node = False
 
+        from .pool import NodePoolManager
+
+        # Build url list directly from the list elements without using our custom iterator
+        raw_urls = [self[i].url for i in range(len(self))]
+        self.pool_manager = NodePoolManager(raw_urls)
+
     def __iter__(self) -> "Nodes":  # type: ignore[override]
-        # Iterator with rotation handled by __next__
         return self
 
     def __next__(self) -> str:
@@ -57,69 +69,71 @@ class Nodes(list[Node]):
             return self.url
         if len(self) == 0:
             raise StopIteration
-        for _ in range(len(self)):
-            self.current_node_index += 1
-            if self.current_node_index >= len(self) or self.current_node_index < 0:
-                self.current_node_index = 0
-            node = self[self.current_node_index]
-            if self.num_retries < 0 or node.error_cnt <= self.num_retries:
-                return node.url
-        raise StopIteration
 
-    next = __next__  # Python 2
+        best_node = self.pool_manager.get_active_node()
+        # Update current_node_index for compatibility
+        for idx in range(len(self)):
+            if self[idx].url == best_node.url:
+                self.current_node_index = idx
+                break
+        return best_node.url
 
-    def export_working_nodes(self) -> List[str]:
-        nodes_list = []
-        for i in range(len(self)):
-            if self.num_retries < 0 or self[i].error_cnt <= self.num_retries:
-                nodes_list.append(self[i].url)
-        return nodes_list
+    next = __next__
 
-    def get_nodes(self) -> List[str]:
-        """Return the list of configured node URLs (including those currently marked errored)."""
-        return [self[i].url for i in range(len(self))]
+    def export_working_nodes(self) -> list[str]:
+        if self.pool_manager is None:
+            return []
+        return [n.url for n in self.pool_manager.nodes if n.healthy]
+
+    def get_nodes(self) -> list[str]:
+        if self.pool_manager is None:
+            return [self[i].url for i in range(len(self))]
+        return [n.url for n in self.pool_manager.nodes]
 
     def __repr__(self) -> str:
-        nodes_list = self.export_working_nodes()
-        return str(nodes_list)
+        return str(self.export_working_nodes())
 
     @property
     def working_nodes_count(self) -> int:
-        n = 0
+        if self.pool_manager is None:
+            return len(self)
         if self.freeze_current_node:
-            i = self.current_node_index
-            if self.current_node_index < 0:
-                i = 0
-            if self.num_retries < 0 or self[i].error_cnt <= self.num_retries:
-                n += 1
-            return n
-        for i in range(len(self)):
-            if self.num_retries < 0 or self[i].error_cnt <= self.num_retries:
-                n += 1
-        return n
+            i = self.current_node_index if self.current_node_index >= 0 else 0
+            if i < len(self.pool_manager.nodes) and self.pool_manager.nodes[i].healthy:
+                return 1
+            return 0
+        return sum(1 for n in self.pool_manager.nodes if n.healthy)
 
     @property
     def url(self) -> str:
-        if self.node is None:
+        if len(self) == 0:
             return ""
-        return self.node.url
+        if self.pool_manager is None:
+            i = max(self.current_node_index, 0)
+            return self[i].url if i < len(self) else ""
+        return self.pool_manager.get_active_node().url
 
     @property
     def node(self) -> Node:
-        if self.current_node_index < 0:
-            return self[0]
-        return self[self.current_node_index]
+        if self.pool_manager is None:
+            i = max(self.current_node_index, 0)
+            return self[i] if self else Node("")
+        active_url = self.pool_manager.get_active_node().url
+        for i in range(len(self)):
+            if self[i].url == active_url:
+                return self[i]
+        return self[0] if self else Node("")
 
     @property
     def error_cnt(self) -> int:
-        if self.node is None:
-            return 0
-        return self.node.error_cnt
+        # Read from the Node list element directly — this counter is never
+        # reset by the pool manager, so it reliably tracks lifetime failures
+        # for the GrapheneRPC num_retries budget.
+        n = self.node
+        return n.error_cnt
 
     @property
     def error_cnt_call(self) -> int:
-        if self.node is None:
-            return 0
         return self.node.error_cnt_call
 
     @property
@@ -127,62 +141,65 @@ class Nodes(list[Node]):
         return self.error_cnt_call >= self.num_retries_call
 
     def disable_node(self) -> None:
-        """Disable current node"""
-        if self.node is not None and self.num_retries_call >= 0:
-            self.node.error_cnt_call = self.num_retries_call
+        """Disable current node by marking it failed."""
+        n = self.node
+        n.error_cnt = self.num_retries + 1  # guarantee it looks exhausted
+        if self.pool_manager:
+            self.pool_manager.mark_node_failed(self.pool_manager.get_active_node())
 
     def increase_error_cnt(self) -> None:
-        """Increase node error count for current node"""
-        if self.node is not None:
-            self.node.error_cnt += 1
+        """Increase node error count for current node."""
+        # Increment the persistent counter on the Node list element first
+        n = self.node
+        n.error_cnt += 1
+        # Then propagate the failure into the pool for routing decisions
+        if self.pool_manager:
+            self.pool_manager.mark_node_failed(self.pool_manager.get_active_node())
 
     def increase_error_cnt_call(self) -> None:
-        """Increase call error count for current node"""
-        if self.node is not None:
-            self.node.error_cnt_call += 1
+        """Increase call error count for current node."""
+        if self.pool_manager:
+            active_node = self.pool_manager.get_active_node()
+            active_node.error_cnt_call += 1
+            if active_node.error_cnt_call >= self.num_retries_call:
+                self.pool_manager.mark_node_failed(active_node)
 
     def reset_error_cnt_call(self) -> None:
-        """Set call error count for current node to zero"""
-        if self.node is not None:
-            self.node.error_cnt_call = 0
+        """Set call error count for current node to zero."""
+        if self.pool_manager:
+            active_node = self.pool_manager.get_active_node()
+            active_node.error_cnt_call = 0
 
     def reset_error_cnt(self) -> None:
-        """Set node error count for current node to zero"""
-        if self.node is not None:
-            self.node.error_cnt = 0
+        """Set node error count for current node to zero."""
+        if self.pool_manager:
+            active_node = self.pool_manager.get_active_node()
+            active_node.healthy = True
+            active_node.penalty = 0.0
+            active_node.error_cnt = 0
 
     def sleep_and_check_retries(
         self,
-        errorMsg: Optional[str] = None,
+        errorMsg: str | None = None,
         sleep: bool = True,
         call_retry: bool = False,
         showMsg: bool = True,
     ) -> None:
-        """
-        Sleep and check if num_retries is reached. If num_retries is reached, raise NumRetriesReached or CallRetriesReached.
-        Only logs first and last retry messages if showMsg is True.
-
-
-        :param errorMsg: Optional error message to log
-        :param sleep: Whether to sleep before retrying
-        :param call_retry: Whether this is a retry for a call error (as opposed to a connection error)
-        :param showMsg: Whether to show retry messages only on the first and last retry
-
-
-        """
+        """Sleep and check if num_retries is reached. Raises if budget exhausted."""
         first_or_last_retry = (
             self.error_cnt_call == 1 or self.error_cnt_call == self.num_retries_call
         )
 
         if errorMsg:
-            log.warning("Error: {}".format(errorMsg))
+            log.warning(f"Error: {errorMsg}")
+
         if call_retry:
             cnt = self.error_cnt_call
-            if self.num_retries_call >= 0 and self.error_cnt_call > self.num_retries_call:
+            if self.num_retries_call >= 0 and cnt > self.num_retries_call:
                 raise CallRetriesReached()
         else:
-            cnt = self.error_cnt
-            if self.num_retries >= 0 and self.error_cnt > self.num_retries:
+            cnt = self.error_cnt  # persistent per-node counter, never reset by pool
+            if self.num_retries >= 0 and cnt > self.num_retries:
                 raise NumRetriesReached()
 
         if showMsg and first_or_last_retry:
@@ -195,6 +212,7 @@ class Nodes(list[Node]):
                     "Lost connection or internal error on node: %s (%d/%d)"
                     % (self.url, cnt, self.num_retries)
                 )
+
         if not sleep:
             return
         if cnt < 1:

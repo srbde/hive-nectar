@@ -1,7 +1,6 @@
 #: Object types for object ids
-from typing import Dict
 
-object_type: Dict[str, int] = {}
+object_type: dict[str, int] = {}
 object_type["null"] = 0
 object_type["base"] = 1
 object_type["account"] = 2

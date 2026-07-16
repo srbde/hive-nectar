@@ -1,8 +1,7 @@
 #: Operation ids
-from typing import Dict, List
 
 # https://gitlab.syncad.com/hive/hive/-/blob/master/libraries/protocol/include/hive/protocol/operations.hpp
-ops: List[str] = [
+ops: list[str] = [
     "vote",  # 0
     "comment",  # 1
     "transfer",  # 2
@@ -91,7 +90,7 @@ ops: List[str] = [
     "failed_recurrent_transfer",  # last_regular + 35
 ]
 
-operations: Dict[str, int] = {o: ops.index(o) for o in ops}
+operations: dict[str, int] = {o: ops.index(o) for o in ops}
 
 
 def getOperationNameForId(i: int) -> str:

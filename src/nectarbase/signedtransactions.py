@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Dict, List, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import Any
 
 from nectargraphenebase.chains import known_chains
 from nectargraphenebase.signedtransactions import Signed_Transaction as GrapheneSigned_Transaction
@@ -43,7 +44,7 @@ class Signed_Transaction(GrapheneSigned_Transaction):
                     self.known_chains[c] = custom_chain[c]
 
     def sign(
-        self, wifkeys: Union[str, List[str]], chain: Optional[Union[str, Dict[str, Any]]] = None
+        self, wifkeys: str | list[str], chain: str | dict[str, Any] | None = None
     ) -> GrapheneSigned_Transaction:
         """
         Sign the transaction using one or more WIF-format private keys.
@@ -58,10 +59,10 @@ class Signed_Transaction(GrapheneSigned_Transaction):
 
     def verify(
         self,
-        pubkeys: Optional[List[Any]] = None,
-        chain: Optional[Union[str, Dict[str, Any]]] = None,
+        pubkeys: list[Any] | None = None,
+        chain: str | dict[str, Any] | None = None,
         recover_parameter: bool = False,
-    ) -> List[Any]:
+    ) -> list[Any]:
         """
         Verify this transaction's signatures.
 
@@ -85,5 +86,5 @@ class Signed_Transaction(GrapheneSigned_Transaction):
         """
         return Operation
 
-    def getKnownChains(self) -> Dict[str, Any]:
+    def getKnownChains(self) -> dict[str, Any]:
         return self.known_chains

@@ -2,7 +2,7 @@ import hashlib
 import logging
 import string
 from binascii import hexlify, unhexlify
-from typing import Any, Optional, Union
+from typing import Any
 
 from .prefix import Prefix
 
@@ -35,7 +35,7 @@ class Base58(Prefix):
 
     """
 
-    def __init__(self, data: Any, prefix: Optional[str] = None) -> None:
+    def __init__(self, data: Any, prefix: str | None = None) -> None:
         self.set_prefix(prefix)
         if isinstance(data, Base58):
             data = repr(data)
@@ -137,13 +137,13 @@ def base58encode(hexstring: str) -> str:
     return (BASE58_ALPHABET[0:1] * leading_zeroes_count + res).decode("ascii")
 
 
-def ripemd160(s: Union[str, bytes]) -> bytes:
+def ripemd160(s: str | bytes) -> bytes:
     ripemd160 = hashlib.new("ripemd160")
     ripemd160.update(unhexlify(s))
     return ripemd160.digest()
 
 
-def doublesha256(s: Union[str, bytes]) -> bytes:
+def doublesha256(s: str | bytes) -> bytes:
     if isinstance(s, str):
         # Handle odd-length hex strings by padding with leading zero
         if len(s) % 2 == 1:

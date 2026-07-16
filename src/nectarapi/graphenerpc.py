@@ -1,9 +1,10 @@
+import asyncio
 import atexit
 import json
 import logging
 import re
 import threading
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import httpx2
 from httpx2 import ConnectError as HttpxConnectError
@@ -31,12 +32,14 @@ log = logging.getLogger(__name__)
 
 
 _shared_httpx_client: httpx2.Client | None = None
-_proxy_clients: Dict[str, httpx2.Client] = {}
+_proxy_clients: dict[str, httpx2.Client] = {}
+_shared_async_httpx_client: httpx2.AsyncClient | None = None
+_proxy_async_clients: dict[str, httpx2.AsyncClient] = {}
 _client_lock = threading.Lock()
 
 
 def _cleanup_shared_client() -> None:
-    global _shared_httpx_client
+    global _shared_httpx_client, _shared_async_httpx_client
     if _shared_httpx_client is not None:
         _shared_httpx_client.close()
         _shared_httpx_client = None
@@ -44,11 +47,33 @@ def _cleanup_shared_client() -> None:
         client.close()
     _proxy_clients.clear()
 
+    # Clean up async clients; since atexit is synchronous, try running aclose or tasks
+    if _shared_async_httpx_client is not None:
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(_shared_async_httpx_client.aclose())
+            else:
+                loop.run_until_complete(_shared_async_httpx_client.aclose())
+        except Exception:
+            pass
+        _shared_async_httpx_client = None
+    for client in list(_proxy_async_clients.values()):
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(client.aclose())
+            else:
+                loop.run_until_complete(client.aclose())
+        except Exception:
+            pass
+    _proxy_async_clients.clear()
+
 
 atexit.register(_cleanup_shared_client)
 
 
-def shared_httpx_client(proxy: Optional[str] = None) -> httpx2.Client:
+def shared_httpx_client(proxy: str | None = None) -> httpx2.Client:
     """
     Return a process-wide httpx client with connection pooling.
 
@@ -66,6 +91,25 @@ def shared_httpx_client(proxy: Optional[str] = None) -> httpx2.Client:
         if _shared_httpx_client is None:
             _shared_httpx_client = httpx2.Client(http2=False)
     return _shared_httpx_client
+
+
+def shared_async_httpx_client(proxy: str | None = None) -> httpx2.AsyncClient:
+    """
+    Return a process-wide async httpx client with connection pooling.
+
+    The client is constructed lazily and reused for all async RPC calls.
+    """
+    global _shared_async_httpx_client
+    if proxy:
+        with _client_lock:
+            if proxy not in _proxy_async_clients:
+                _proxy_async_clients[proxy] = httpx2.AsyncClient(http2=False, proxy=proxy)
+        return _proxy_async_clients[proxy]
+
+    with _client_lock:
+        if _shared_async_httpx_client is None:
+            _shared_async_httpx_client = httpx2.AsyncClient(http2=False)
+    return _shared_async_httpx_client
 
 
 class GrapheneRPC:
@@ -87,9 +131,9 @@ class GrapheneRPC:
 
     def __init__(
         self,
-        urls: Union[str, List[str]],
-        user: Optional[str] = None,
-        password: Optional[str] = None,
+        urls: str | list[str],
+        user: str | None = None,
+        password: str | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -128,7 +172,7 @@ class GrapheneRPC:
         self.user = user
         self.password = password
         self.url = None
-        self.session: Optional[httpx2.Client] = None
+        self.session: httpx2.Client | None = None
         self.rpc_queue = []
         if kwargs.get("autoconnect", True):
             self.rpcconnect()
@@ -190,11 +234,34 @@ class GrapheneRPC:
                 self.nodes.reset_error_cnt_call()
                 log.debug("Trying to connect to node %s" % self.url)
                 self.ws = None
-                self._proxy: Optional[str] = None
+                self._proxy: str | None = None
                 if self.use_tor:
                     self._proxy = "socks5h://localhost:9050"
-                # Use a shared client unless proxies are required.
-                self.session = shared_httpx_client(self._proxy)
+                # Use a custom failover transport if multiple nodes exist.
+                # Build the client ONCE per GrapheneRPC instance (stored on self)
+                # to avoid creating a new connection pool on every retry call.
+                if len(self.nodes) > 1:
+                    if (
+                        "_failover_session" not in self.__dict__
+                        or self.__dict__["_failover_session"] is None
+                    ):
+                        pool_mgr = getattr(self.nodes, "pool_manager", None)
+                        if pool_mgr is None:
+                            from .pool import NodePoolManager
+
+                            pool_mgr = NodePoolManager(
+                                [self.nodes[i].url for i in range(len(self.nodes))]
+                            )
+                            self.nodes.pool_manager = pool_mgr
+                        from .transports import FailoverSyncTransport
+
+                        transport = FailoverSyncTransport(pool_mgr, proxy=self._proxy)
+                        self.__dict__["_failover_session"] = httpx2.Client(
+                            http2=False, transport=transport
+                        )
+                    self.session = self.__dict__["_failover_session"]
+                else:
+                    self.session = shared_httpx_client(self._proxy)
                 self.ws = None
                 self.headers = {
                     "User-Agent": "nectar v%s" % (nectar_version),
@@ -224,7 +291,7 @@ class GrapheneRPC:
         auth: httpx2.Auth | None = None
         if self.user is not None and self.password is not None:
             auth = httpx2.BasicAuth(self.user, self.password)
-        post_kwargs: Dict[str, Any] = {
+        post_kwargs: dict[str, Any] = {
             "content": payload,
             "headers": self.headers,
             "timeout": self.timeout,
@@ -256,7 +323,7 @@ class GrapheneRPC:
         version_list = network_version.split(".")
         return int(int(version_list[0]) * 1e8 + int(version_list[1]) * 1e4 + int(version_list[2]))
 
-    def get_network(self, props: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def get_network(self, props: dict[str, Any] | None = None) -> dict[str, Any]:
         """
         Detects and returns the network/chain configuration for the connected node.
 
@@ -386,7 +453,7 @@ class GrapheneRPC:
         else:
             return highest_version_chain
 
-    def _check_for_server_error(self, reply: Dict[str, Any]) -> None:
+    def _check_for_server_error(self, reply: dict[str, Any]) -> None:
         """Checks for server error message in reply"""
         reply_str = str(reply)
         if re.search("Internal Server Error", reply_str) or re.search(r"\b500\b", reply_str):
@@ -456,7 +523,7 @@ class GrapheneRPC:
         else:
             raise RPCError("Client returned invalid format. Expected JSON!")
 
-    def rpcexec(self, payload: Union[Dict[str, Any], List[Dict[str, Any]]]) -> Any:
+    def rpcexec(self, payload: dict[str, Any] | list[dict[str, Any]]) -> Any:
         """
         Execute the given JSON-RPC payload against the currently selected node and return the RPC result.
 
@@ -587,6 +654,202 @@ class GrapheneRPC:
                 query = self.rpc_queue
                 self.rpc_queue = []
             r = self.rpcexec(query)
+            self.nodes.num_retries_call = stored_num_retries_call
+            return r
+
+        return method
+
+
+class AsyncGrapheneRPC(GrapheneRPC):
+    """
+    Asynchronous version of GrapheneRPC that utilizes AsyncClient and non-blocking transports.
+    """
+
+    session: httpx2.AsyncClient | None
+
+    def __init__(
+        self,
+        urls: str | list[str],
+        user: str | None = None,
+        password: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(urls, user, password, **kwargs)
+
+    def rpcconnect(self, next_url: bool = True) -> None:
+        """
+        Selects and establishes connection to an available RPC node asynchronously.
+        """
+        if self.nodes.working_nodes_count == 0:
+            return
+        while True:
+            if next_url:
+                self.url = next(self.nodes)
+                self.nodes.reset_error_cnt_call()
+                log.debug("Trying to connect to node %s" % self.url)
+                self.ws = None
+                self._proxy = None
+                if self.use_tor:
+                    self._proxy = "socks5h://localhost:9050"
+                if len(self.nodes) > 1:
+                    if (
+                        "_failover_session" not in self.__dict__
+                        or self.__dict__["_failover_session"] is None
+                    ):
+                        pool_mgr = getattr(self.nodes, "pool_manager", None)
+                        if pool_mgr is None:
+                            from .pool import NodePoolManager
+
+                            pool_mgr = NodePoolManager(
+                                [self.nodes[i].url for i in range(len(self.nodes))]
+                            )
+                            self.nodes.pool_manager = pool_mgr
+                        from .transports import FailoverAsyncTransport
+
+                        transport = FailoverAsyncTransport(pool_mgr, proxy=self._proxy)
+                        self.__dict__["_failover_session"] = httpx2.AsyncClient(
+                            http2=False, transport=transport
+                        )
+                    self.session = self.__dict__["_failover_session"]
+                else:
+                    self.session = shared_async_httpx_client(self._proxy)
+                self.ws = None
+                self.headers = {
+                    "User-Agent": "nectar v%s" % (nectar_version),
+                    "content-type": "application/json; charset=utf-8",
+                }
+            break
+
+    async def request_send_async(self, payload: bytes) -> httpx2.Response:
+        """
+        Send the prepared RPC payload to the currently connected node via HTTP POST asynchronously.
+        """
+        if self.session is None:
+            raise RPCConnection("Session must be initialized")
+        if self.url is None:
+            raise RPCConnection("URL must be initialized")
+        auth: httpx2.Auth | None = None
+        if self.user is not None and self.password is not None:
+            auth = httpx2.BasicAuth(self.user, self.password)
+        post_kwargs: dict[str, Any] = {
+            "content": payload,
+            "headers": self.headers,
+            "timeout": self.timeout,
+        }
+        if auth is not None:
+            post_kwargs["auth"] = auth
+        response = await self.session.post(self.url, **post_kwargs)
+        if response.status_code == 401:
+            raise UnauthorizedError
+        response.raise_for_status()
+        return response
+
+    async def rpcexec_async(self, payload: dict[str, Any] | list[dict[str, Any]]) -> Any:
+        """
+        Execute the given JSON-RPC payload asynchronously.
+        """
+        log.debug(f"Payload: {json.dumps(payload)}")
+        if self.nodes.working_nodes_count == 0:
+            raise WorkingNodeMissing("No working nodes available.")
+        if self.url is None:
+            raise RPCConnection("RPC is not connected!")
+
+        reply = {}
+        response: httpx2.Response | None = None
+        while True:
+            self.nodes.increase_error_cnt_call()
+            try:
+                response = await self.request_send_async(
+                    json.dumps(payload, ensure_ascii=False).encode("utf8")
+                )
+                reply = response.text
+                if not bool(reply):
+                    try:
+                        self.nodes.sleep_and_check_retries("Empty Reply", call_retry=True)
+                    except CallRetriesReached:
+                        self.nodes.increase_error_cnt()
+                        self.nodes.sleep_and_check_retries(
+                            "Empty Reply", sleep=False, call_retry=False
+                        )
+                        self.rpcconnect()
+                else:
+                    break
+            except KeyboardInterrupt:
+                raise
+            except (HttpxConnectError, TimeoutException, HTTPStatusError, RequestError) as e:
+                self._handle_transport_error(e, call_retry=False)
+            except Exception as e:
+                log.warning(f"Unexpected transport error type: {type(e).__name__}: {e}")
+                self._handle_transport_error(e, call_retry=False)
+
+        try:
+            if response is None:
+                try:
+                    ret = json.loads(reply, strict=False)
+                except ValueError:
+                    log.error(f"Non-JSON response: {reply} Node: {self.url}")
+                    self._check_for_server_error(reply)
+                    raise RPCError("Invalid response format")
+            else:
+                ret = response.json()
+        except ValueError:
+            self._check_for_server_error({"error": reply})
+
+        log.debug(f"Reply: {json.dumps(reply)}")
+
+        if isinstance(ret, dict) and "error" in ret:
+            if isinstance(ret["error"], dict):
+                error_message = ret["error"].get(
+                    "detail", ret["error"].get("message", "Unknown error")
+                )
+                self._raise_for_error(error_message)
+        elif isinstance(ret, list):
+            ret_list = []
+            for r in ret:
+                if isinstance(r, dict) and "error" in r:
+                    error_message = r["error"].get(
+                        "detail", r["error"].get("message", "Unknown error")
+                    )
+                    self._raise_for_error(error_message)
+                elif isinstance(r, dict) and "result" in r:
+                    ret_list.append(r["result"])
+                else:
+                    ret_list.append(r)
+            self.nodes.reset_error_cnt_call()
+            return ret_list
+        elif isinstance(ret, dict) and "result" in ret:
+            self.nodes.reset_error_cnt_call()
+            return ret["result"]
+        else:
+            log.error(f"Unexpected response format: {ret} Node: {self.url}")
+            raise RPCError(f"Unexpected response format: {ret}")
+
+    def __getattr__(self, name):
+        """Map all methods to RPC calls and pass through the arguments asynchronously."""
+
+        async def method(*args, **kwargs):
+            # Prefer explicit api override, then OpenAPI map, then database_api
+            api_name = kwargs.get("api") or get_default_api_for_method(name) or "database_api"
+
+            # let's be able to define the num_retries per query
+            stored_num_retries_call = self.nodes.num_retries_call
+            self.nodes.num_retries_call = kwargs.get("num_retries_call", stored_num_retries_call)
+            add_to_queue = kwargs.get("add_to_queue", False)
+            query = get_query(
+                self.get_request_id(),
+                api_name,
+                name,
+                list(args),
+            )
+            if add_to_queue:
+                self.rpc_queue.append(query)
+                self.nodes.num_retries_call = stored_num_retries_call
+                return None
+            elif len(self.rpc_queue) > 0:
+                self.rpc_queue.append(query)
+                query = self.rpc_queue
+                self.rpc_queue = []
+            r = await self.rpcexec_async(query)
             self.nodes.num_retries_call = stored_num_retries_call
             return r
 
