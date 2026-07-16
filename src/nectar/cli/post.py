@@ -27,6 +27,11 @@ from nectar.version import version as __version__
 log = logging.getLogger(__name__)
 
 
+def _write_file(file_path, content):
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
 @cli.command()
 @click.argument("post_id", nargs=1, metavar="POST")
 @click.option("--weight", "-w", help="Vote weight (from 0.1 to 100.0)")
@@ -630,5 +635,4 @@ def createpost(
     if max_accepted_payout is not None and max_accepted_payout != "":
         yaml_prefix += "max_accepted_payout: %s\n" % max_accepted_payout
     yaml_prefix += "---\n"
-    with open(markdown_file, "w", encoding="utf-8") as f:
-        f.write(yaml_prefix)
+    _write_file(markdown_file, yaml_prefix)

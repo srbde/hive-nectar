@@ -10,7 +10,7 @@ from nectar.amount import Amount
 from nectar.asset import Asset
 from nectar.instance import shared_blockchain_instance
 from nectar.price import FilledOrder, Order, Price
-from nectar.utils import addTzInfo, assets_from_string, formatTimeFromNow, formatTimeString
+from nectar.utils import addTzInfo, formatTimeFromNow, formatTimeString, parse_asset_pair
 from nectarbase import operations
 
 log = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ class Market(dict):
         self.blockchain = blockchain_instance or shared_blockchain_instance()
 
         if quote is None and isinstance(base, str):
-            quote_symbol, base_symbol = assets_from_string(base)
+            quote_symbol, base_symbol = parse_asset_pair(base)
             quote = Asset(quote_symbol, blockchain_instance=self.blockchain)
             base = Asset(base_symbol, blockchain_instance=self.blockchain)
             super().__init__({"base": base, "quote": quote}, blockchain_instance=self.blockchain)
@@ -110,7 +110,7 @@ class Market(dict):
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
-            quote_symbol, base_symbol = assets_from_string(other)
+            quote_symbol, base_symbol = parse_asset_pair(other)
             return (
                 self["quote"]["symbol"] == quote_symbol and self["base"]["symbol"] == base_symbol
             ) or (self["quote"]["symbol"] == base_symbol and self["base"]["symbol"] == quote_symbol)
