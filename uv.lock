@@ -535,7 +535,7 @@ wheels = [
 
 [[package]]
 name = "hive-nectar"
-version = "1.0.3"
+version = "1.0.4"
 source = { editable = "." }
 dependencies = [
     { name = "asn1crypto" },
