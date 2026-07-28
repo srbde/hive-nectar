@@ -52,6 +52,11 @@ def generate_config_store(
         else:
             nodelist = NodeList()
             if blockchain == "hive":
+                # NodeList starts with a non-blocking static fallback, but this
+                # value is persisted as the default configuration. Refresh it
+                # synchronously so a temporary beacon outage does not leave a
+                # permanently stale node list in the user's config.
+                nodelist.update_nodes()
                 nodes = nodelist.get_hive_nodes(testnet=False)
             else:
                 # Hive-only
