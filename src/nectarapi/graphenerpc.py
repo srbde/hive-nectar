@@ -165,7 +165,12 @@ class GrapheneRPC:
                 if c not in self.known_chains:
                     self.known_chains[c] = custom_chain[c]
 
-        self.nodes = Nodes(urls, num_retries, num_retries_call)
+        self.nodes = Nodes(
+            urls,
+            num_retries,
+            num_retries_call,
+            monitor_interval=kwargs.get("monitor_interval"),
+        )
         if self.nodes.working_nodes_count == 0:
             log.warning("No working nodes available at initialization")
 
@@ -626,6 +631,17 @@ class GrapheneRPC:
             raise NoApiWithName(error_message)
         raise RPCError(error_message)
 
+    def close(self) -> None:
+        """Close the per-instance failover session, if one was created."""
+        session = self.__dict__.pop("_failover_session", None)
+        if session is not None:
+            session.close()
+        self.session = None
+
+    async def aclose(self) -> None:
+        """Async-compatible cleanup for synchronous RPC clients."""
+        self.close()
+
     # End of Deprecated methods
     ####################################################################
     def __getattr__(self, name):
@@ -823,6 +839,13 @@ class AsyncGrapheneRPC(GrapheneRPC):
         else:
             log.error(f"Unexpected response format: {ret} Node: {self.url}")
             raise RPCError(f"Unexpected response format: {ret}")
+
+    async def aclose(self) -> None:
+        """Close the per-instance asynchronous failover session."""
+        session = self.__dict__.pop("_failover_session", None)
+        if session is not None:
+            await session.aclose()
+        self.session = None
 
     def __getattr__(self, name):
         """Map all methods to RPC calls and pass through the arguments asynchronously."""

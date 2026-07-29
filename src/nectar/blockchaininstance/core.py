@@ -151,6 +151,7 @@ class BlockChainInstance:
                 - bundle (bool): If True, enable bundling of operations instead of immediate broadcast.
                 - blocking (str|bool): Wait mode for broadcasts ("head" or "irreversible").
                 - custom_chains (dict): Custom chain definitions.
+                - monitor_interval (float|None): Background node-health monitor interval; use 0 to disable.
                 - use_ledger (bool): If True, enable Ledger Nano signing.
                 - path (str): BIP32 path to derive pubkey from when using Ledger.
                 - config_store: Configuration store object (defaults to the global default).
@@ -254,13 +255,18 @@ class BlockChainInstance:
         if not node_list and self.rpc and hasattr(self.rpc, "nodes"):
             node_list = self.rpc.nodes.get_nodes()
 
+        if self.rpc and hasattr(self.rpc, "nodes"):
+            self.pool_manager = self.rpc.nodes.pool_manager
+
         if len(node_list) > 1:
-            from nectarapi.pool import NodePoolManager
             from nectarapi.transports import FailoverAsyncTransport, FailoverSyncTransport
 
-            self.pool_manager = NodePoolManager(
-                node_list, monitor_interval=kwargs.get("monitor_interval")
-            )
+            if self.pool_manager is None:
+                from nectarapi.pool import NodePoolManager
+
+                self.pool_manager = NodePoolManager(
+                    node_list, monitor_interval=kwargs.get("monitor_interval")
+                )
             if self.rpc and hasattr(self.rpc, "nodes"):
                 self.rpc.nodes.pool_manager = self.pool_manager
             self.sync_transport = FailoverSyncTransport(
@@ -283,6 +289,63 @@ class BlockChainInstance:
         # working node (i.e., self.rpc.url was None), which caused downstream
         # RPC calls to raise RPCConnection("RPC is not connected!").
         return self.rpc is not None and bool(getattr(self.rpc, "url", None))
+
+    def close(self) -> None:
+        """Release all resources owned by this blockchain instance."""
+        rpc = self.rpc
+        self.rpc = None
+        if rpc is not None and hasattr(rpc, "close"):
+            rpc.close()
+
+        client = self.client
+        self.client = None
+        if client is not None:
+            client.close()
+
+        async_client = self.async_client
+        self.async_client = None
+        if async_client is not None:
+            import asyncio
+
+            async def close_async_client() -> None:
+                await async_client.aclose()
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                asyncio.run(close_async_client())
+            else:
+                loop.create_task(close_async_client())
+
+        pool_manager = self.pool_manager
+        self.pool_manager = None
+        if pool_manager is not None:
+            pool_manager.close()
+
+    async def aclose(self) -> None:
+        """Asynchronously release all resources owned by this instance."""
+        rpc = self.rpc
+        self.rpc = None
+        if rpc is not None:
+            if hasattr(rpc, "aclose"):
+                await rpc.aclose()
+            elif hasattr(rpc, "close"):
+                rpc.close()
+
+        client = self.client
+        self.client = None
+        if client is not None:
+            client.close()
+
+        async_client = self.async_client
+        self.async_client = None
+        if async_client is not None:
+            await async_client.aclose()
+
+        pool_manager = self.pool_manager
+        self.pool_manager = None
+        if pool_manager is not None:
+            pool_manager.close()
 
     def __repr__(self) -> str:
         if self.offline:
