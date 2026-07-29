@@ -26,12 +26,14 @@ class Nodes(list):
         urls: Union[str, "Nodes", list[Any], tuple, set, None],
         num_retries: int,
         num_retries_call: int,
+        monitor_interval: float | None = None,
     ) -> None:
         super().__init__()
         self.num_retries = num_retries
         self.num_retries_call = num_retries_call
         self.current_node_index = -1
         self.freeze_current_node = False
+        self.monitor_interval = monitor_interval
         self.pool_manager = None  # Set before __next__ is ever called
         self.set_node_urls(urls)
 
@@ -57,9 +59,12 @@ class Nodes(list):
 
         from .pool import NodePoolManager
 
+        if self.pool_manager is not None:
+            self.pool_manager.close()
+
         # Build url list directly from the list elements without using our custom iterator
         raw_urls = [self[i].url for i in range(len(self))]
-        self.pool_manager = NodePoolManager(raw_urls)
+        self.pool_manager = NodePoolManager(raw_urls, monitor_interval=self.monitor_interval)
 
     def __iter__(self) -> "Nodes":  # type: ignore[override]
         return self

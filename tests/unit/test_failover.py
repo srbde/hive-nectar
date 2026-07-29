@@ -50,6 +50,17 @@ class TestRPCNode:
 
 
 class TestNodePoolManager:
+    def test_nodes_forwards_monitor_interval_to_pool(self):
+        nodes = Nodes(
+            ["https://api.hive.blog", "https://api.openhive.network"],
+            num_retries=3,
+            num_retries_call=2,
+            monitor_interval=0.0,
+        )
+
+        assert nodes.pool_manager.monitor_interval == 0.0
+        assert nodes.pool_manager._monitor_thread is None
+
     def test_init_with_nodes(self):
         pm = NodePoolManager(["https://api.hive.blog", "https://api.openhive.network"])
         assert len(pm.nodes) == 2

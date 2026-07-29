@@ -165,7 +165,12 @@ class GrapheneRPC:
                 if c not in self.known_chains:
                     self.known_chains[c] = custom_chain[c]
 
-        self.nodes = Nodes(urls, num_retries, num_retries_call)
+        self.nodes = Nodes(
+            urls,
+            num_retries,
+            num_retries_call,
+            monitor_interval=kwargs.get("monitor_interval"),
+        )
         if self.nodes.working_nodes_count == 0:
             log.warning("No working nodes available at initialization")
 
@@ -241,11 +246,18 @@ class GrapheneRPC:
                 # Build the client ONCE per GrapheneRPC instance (stored on self)
                 # to avoid creating a new connection pool on every retry call.
                 if len(self.nodes) > 1:
+                    pool_mgr = getattr(self.nodes, "pool_manager", None)
+                    existing_pool_mgr = self.__dict__.get("_failover_pool_manager")
+                    if (
+                        self.__dict__.get("_failover_session") is not None
+                        and existing_pool_mgr is not pool_mgr
+                    ):
+                        self.__dict__["_failover_session"].close()
+                        self.__dict__.pop("_failover_session", None)
                     if (
                         "_failover_session" not in self.__dict__
                         or self.__dict__["_failover_session"] is None
                     ):
-                        pool_mgr = getattr(self.nodes, "pool_manager", None)
                         if pool_mgr is None:
                             from .pool import NodePoolManager
 
@@ -259,6 +271,7 @@ class GrapheneRPC:
                         self.__dict__["_failover_session"] = httpx2.Client(
                             http2=False, transport=transport
                         )
+                        self.__dict__["_failover_pool_manager"] = pool_mgr
                     self.session = self.__dict__["_failover_session"]
                 else:
                     self.session = shared_httpx_client(self._proxy)
@@ -626,6 +639,18 @@ class GrapheneRPC:
             raise NoApiWithName(error_message)
         raise RPCError(error_message)
 
+    def close(self) -> None:
+        """Close the per-instance failover session, if one was created."""
+        session = self.__dict__.pop("_failover_session", None)
+        self.__dict__.pop("_failover_pool_manager", None)
+        if session is not None:
+            session.close()
+        self.session = None
+
+    async def aclose(self) -> None:
+        """Async-compatible cleanup for synchronous RPC clients."""
+        self.close()
+
     # End of Deprecated methods
     ####################################################################
     def __getattr__(self, name):
@@ -692,11 +717,26 @@ class AsyncGrapheneRPC(GrapheneRPC):
                 if self.use_tor:
                     self._proxy = "socks5h://localhost:9050"
                 if len(self.nodes) > 1:
+                    pool_mgr = getattr(self.nodes, "pool_manager", None)
+                    existing_pool_mgr = self.__dict__.get("_failover_pool_manager")
+                    if (
+                        self.__dict__.get("_failover_session") is not None
+                        and existing_pool_mgr is not pool_mgr
+                    ):
+                        import asyncio
+
+                        close_result = self.__dict__["_failover_session"].aclose()
+                        try:
+                            loop = asyncio.get_running_loop()
+                        except RuntimeError:
+                            asyncio.run(close_result)
+                        else:
+                            loop.create_task(close_result)
+                        self.__dict__.pop("_failover_session", None)
                     if (
                         "_failover_session" not in self.__dict__
                         or self.__dict__["_failover_session"] is None
                     ):
-                        pool_mgr = getattr(self.nodes, "pool_manager", None)
                         if pool_mgr is None:
                             from .pool import NodePoolManager
 
@@ -710,6 +750,7 @@ class AsyncGrapheneRPC(GrapheneRPC):
                         self.__dict__["_failover_session"] = httpx2.AsyncClient(
                             http2=False, transport=transport
                         )
+                        self.__dict__["_failover_pool_manager"] = pool_mgr
                     self.session = self.__dict__["_failover_session"]
                 else:
                     self.session = shared_async_httpx_client(self._proxy)
@@ -823,6 +864,14 @@ class AsyncGrapheneRPC(GrapheneRPC):
         else:
             log.error(f"Unexpected response format: {ret} Node: {self.url}")
             raise RPCError(f"Unexpected response format: {ret}")
+
+    async def aclose(self) -> None:
+        """Close the per-instance asynchronous failover session."""
+        session = self.__dict__.pop("_failover_session", None)
+        self.__dict__.pop("_failover_pool_manager", None)
+        if session is not None:
+            await session.aclose()
+        self.session = None
 
     def __getattr__(self, name):
         """Map all methods to RPC calls and pass through the arguments asynchronously."""
