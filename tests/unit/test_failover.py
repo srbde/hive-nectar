@@ -6,6 +6,7 @@ All tests are fully offline — no live network connections are made.
 
 import asyncio
 import threading
+import time
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx2
@@ -80,6 +81,19 @@ class TestNodePoolManager:
         pm.mark_node_failed(first)
         assert not first.healthy
         assert first.penalty == float("inf")
+
+    def test_rate_limited_node_recovers_after_cooldown(self):
+        pm = NodePoolManager(["https://api.hive.blog", "https://api.openhive.network"])
+        first = pm.nodes[0]
+
+        pm.mark_node_rate_limited(first, retry_after=60)
+        assert not first.healthy
+
+        first.rate_limited_until = time.monotonic() - 1
+        pm.get_active_node()
+
+        assert first.healthy
+        assert first.rate_limited_until == 0.0
 
     def test_all_nodes_failed_resets(self):
         """When all nodes are failed, the pool resets so work can continue."""
@@ -255,6 +269,25 @@ class TestFailoverSyncTransport:
         assert response.status_code == 200
         assert call_count[0] == 2
 
+    def test_falls_over_on_rate_limit_and_closes_response(self):
+        pm = NodePoolManager(["https://api.hive.blog", "https://api.openhive.network"])
+        rate_limited = MagicMock(spec=httpx2.Response)
+        rate_limited.status_code = 429
+        rate_limited.headers = {"retry-after": "60"}
+        successful = self._make_response(200)
+
+        mock_transport = MagicMock()
+        mock_transport.handle_request.side_effect = [rate_limited, successful]
+
+        transport = FailoverSyncTransport(pm)
+        transport.underlying_transport = mock_transport
+        response = transport.handle_request(httpx2.Request("POST", "https://placeholder.invalid/"))
+
+        assert response.status_code == 200
+        rate_limited.close.assert_called_once_with()
+        assert not pm.nodes[0].healthy
+        assert pm.nodes[0].rate_limited_until > 0
+
     def test_falls_over_on_connection_error(self):
         pm = NodePoolManager(["https://api.hive.blog", "https://api.openhive.network"])
 
@@ -340,6 +373,31 @@ class TestFailoverAsyncTransport:
             response = await transport.handle_async_request(request)
             assert response.status_code == 200
             assert call_count[0] == 2
+
+        asyncio.run(run())
+
+    def test_falls_over_on_rate_limit_and_closes_response(self):
+        pm = NodePoolManager(["https://api.hive.blog", "https://api.openhive.network"])
+        rate_limited = MagicMock(spec=httpx2.Response)
+        rate_limited.status_code = 429
+        rate_limited.headers = {"retry-after": "60"}
+        rate_limited.aclose = AsyncMock()
+        successful = self._make_response(200)
+
+        mock_transport = AsyncMock()
+        mock_transport.handle_async_request.side_effect = [rate_limited, successful]
+
+        transport = FailoverAsyncTransport(pm)
+        transport.underlying_transport = mock_transport
+
+        async def run():
+            response = await transport.handle_async_request(
+                httpx2.Request("POST", "https://placeholder.invalid/")
+            )
+            assert response.status_code == 200
+            rate_limited.aclose.assert_awaited_once_with()
+            assert not pm.nodes[0].healthy
+            assert pm.nodes[0].rate_limited_until > 0
 
         asyncio.run(run())
 

@@ -307,16 +307,16 @@ class AccountOperationsMixin:
         """
         if account is None:
             account = self
-        elif isinstance(account, Account):
+        elif isinstance(account, self.__class__):
             pass
         else:
-            account = Account(account)
+            account = self.__class__(account, blockchain_instance=self.blockchain)
 
         if isinstance(proxy, str):
             proxy_name = proxy
         else:
             proxy_name = proxy["name"]
-        op = operations.Account_witness_proxy(**{"account": account.name, "proxy": proxy_name})
+        op = operations.Account_witness_proxy(**{"account": account["name"], "proxy": proxy_name})
         return self.blockchain.finalizeOp(op, account, "active")
 
     def update_memo_key(
@@ -422,7 +422,7 @@ class AccountOperationsMixin:
         else:
             account = self.__class__(account, blockchain_instance=self.blockchain)
         # Account() lookup to make sure the new account is valid
-        new_rec_acc = Account(new_recovery_account, blockchain_instance=self.blockchain)
+        new_rec_acc = self.__class__(new_recovery_account, blockchain_instance=self.blockchain)
         op = operations.Change_recovery_account(
             **{
                 "account_to_recover": account["name"],
@@ -459,14 +459,13 @@ class AccountOperationsMixin:
         Returns:
             dict: Result from blockchain.finalizeOp (signed/broadcast transaction response).
         """
-
         if account is None:
             account = self
         elif not skip_account_check:
             account = self.__class__(account, blockchain_instance=self.blockchain)
         amount = Amount(amount, asset, blockchain_instance=self.blockchain)
         if not skip_account_check:
-            to = Account(to, blockchain_instance=self.blockchain)
+            to = self.__class__(to, blockchain_instance=self.blockchain)
 
         to_name = extract_account_name(to)
         account_name = extract_account_name(account)
@@ -526,7 +525,7 @@ class AccountOperationsMixin:
             account = self.__class__(account, blockchain_instance=self.blockchain)
         amount = Amount(amount, asset, blockchain_instance=self.blockchain)
         if not skip_account_check:
-            to = Account(to, blockchain_instance=self.blockchain)
+            to = self.__class__(to, blockchain_instance=self.blockchain)
 
         to_name = extract_account_name(to)
         account_name = extract_account_name(account)
@@ -583,7 +582,7 @@ class AccountOperationsMixin:
         elif to is None:
             to = self
         if not skip_account_check:
-            to = Account(to, blockchain_instance=self.blockchain)
+            to = self.__class__(to, blockchain_instance=self.blockchain)
         to_name = extract_account_name(to)
         account_name = extract_account_name(account)
 
@@ -724,7 +723,7 @@ class AccountOperationsMixin:
         if to is None:
             to = account  # move to savings on same account
         else:
-            to = Account(to, blockchain_instance=self.blockchain)
+            to = self.__class__(to, blockchain_instance=self.blockchain)
         op = operations.Transfer_to_savings(
             **{
                 "from": account["name"],
@@ -782,7 +781,7 @@ class AccountOperationsMixin:
         if to is None:
             to = account  # move to savings on same account
         else:
-            to = Account(to, blockchain_instance=self.blockchain)
+            to = self.__class__(to, blockchain_instance=self.blockchain)
         amount = Amount(amount, asset, blockchain_instance=self.blockchain)
         if request_id:
             request_id = int(request_id)
@@ -942,7 +941,7 @@ class AccountOperationsMixin:
             account = self
         else:
             account = self.__class__(account, blockchain_instance=self.blockchain)
-        to_account = Account(to_account, blockchain_instance=self.blockchain)
+        to_account = self.__class__(to_account, blockchain_instance=self.blockchain)
         if to_account is None:
             raise ValueError("You need to provide a to_account")
         vesting_shares = self._check_amount(vesting_shares, self.blockchain.vest_token_symbol)
@@ -1083,7 +1082,7 @@ class AccountOperationsMixin:
             authority["key_auths"].append([str(pubkey), weight])
         except Exception:
             try:
-                foreign_account = Account(foreign, blockchain_instance=self.blockchain)
+                foreign_account = self.__class__(foreign, blockchain_instance=self.blockchain)
                 authority["account_auths"].append([foreign_account["name"], weight])
             except Exception:
                 raise ValueError("Unknown foreign account or invalid public key")
@@ -1154,7 +1153,7 @@ class AccountOperationsMixin:
                 )
         except Exception:
             try:
-                foreign_account = Account(foreign, blockchain_instance=self.blockchain)
+                foreign_account = self.__class__(foreign, blockchain_instance=self.blockchain)
                 if weight:
                     affected_items = list(
                         [
