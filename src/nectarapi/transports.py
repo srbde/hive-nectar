@@ -30,7 +30,10 @@ class FailoverSyncTransport(httpx2.BaseTransport):
 
             try:
                 response = self.underlying_transport.handle_request(request)
-                if response.status_code >= 500:
+                # 429 rate-limits and 5xx are node-local: fail over immediately.
+                # Without this, 429 is returned to GrapheneRPC which burns the
+                # whole pool via least-bad retries on the same rate-limited node.
+                if response.status_code == 429 or response.status_code >= 500:
                     log.warning(
                         f"Node {best_node.url} returned status {response.status_code}. "
                         "Marking as failed and retrying."
@@ -77,7 +80,7 @@ class FailoverAsyncTransport(httpx2.AsyncBaseTransport):
 
             try:
                 response = await self.underlying_transport.handle_async_request(request)
-                if response.status_code >= 500:
+                if response.status_code == 429 or response.status_code >= 500:
                     log.warning(
                         f"Async Node {best_node.url} returned status {response.status_code}. "
                         "Marking as failed and retrying."
