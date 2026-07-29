@@ -1,10 +1,30 @@
 import logging
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 import httpx2
 
 from .pool import NodePoolManager, RPCNode
 
 log = logging.getLogger(__name__)
+DEFAULT_RATE_LIMIT_COOLDOWN = 30.0
+
+
+def _retry_after_seconds(response: httpx2.Response) -> float:
+    """Return the Retry-After delay, falling back to a short cooldown."""
+    value = response.headers.get("retry-after", "").strip()
+    if not value:
+        return DEFAULT_RATE_LIMIT_COOLDOWN
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        try:
+            retry_at = parsedate_to_datetime(value)
+            if retry_at.tzinfo is None:
+                retry_at = retry_at.replace(tzinfo=timezone.utc)
+            return max(0.0, (retry_at - datetime.now(timezone.utc)).total_seconds())
+        except (TypeError, ValueError, OverflowError):
+            return DEFAULT_RATE_LIMIT_COOLDOWN
 
 
 def _format_request_error(exc: BaseException) -> str:
@@ -103,7 +123,13 @@ class FailoverSyncTransport(httpx2.BaseTransport):
                 if response.status_code == 429 or response.status_code >= 500:
                     failed_url = best_node.url
                     reason = f"HTTP {response.status_code}"
-                    self.pool_manager.mark_node_failed(best_node)
+                    if response.status_code == 429:
+                        retry_after = _retry_after_seconds(response)
+                        response.close()
+                        self.pool_manager.mark_node_rate_limited(best_node, retry_after)
+                    else:
+                        response.close()
+                        self.pool_manager.mark_node_failed(best_node)
                     attempts += 1
                     _log_node_failover(
                         kind="http_status",
@@ -169,7 +195,13 @@ class FailoverAsyncTransport(httpx2.AsyncBaseTransport):
                 if response.status_code == 429 or response.status_code >= 500:
                     failed_url = best_node.url
                     reason = f"HTTP {response.status_code}"
-                    await self.pool_manager.mark_node_failed_async(best_node)
+                    if response.status_code == 429:
+                        retry_after = _retry_after_seconds(response)
+                        await response.aclose()
+                        self.pool_manager.mark_node_rate_limited(best_node, retry_after)
+                    else:
+                        await response.aclose()
+                        await self.pool_manager.mark_node_failed_async(best_node)
                     attempts += 1
                     _log_node_failover(
                         kind="http_status",

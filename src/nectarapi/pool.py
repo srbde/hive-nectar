@@ -20,6 +20,7 @@ class RPCNode:
         self.healthy = True
         self.error_cnt = 0
         self.error_cnt_call = 0
+        self.rate_limited_until = 0.0
         self.head_block_number = 0
         self.latency = 0.0
 
@@ -89,6 +90,11 @@ class NodePoolManager:
 
     def get_active_node(self) -> RPCNode:
         with self.lock:
+            if any(
+                node.rate_limited_until and node.rate_limited_until <= time.monotonic()
+                for node in self.nodes
+            ):
+                self._recalculate_best_node()
             return self._active_node
 
     async def get_active_node_async(self) -> RPCNode:
@@ -102,11 +108,26 @@ class NodePoolManager:
             node.penalty = float("inf")
             self._recalculate_best_node()
 
+    def mark_node_rate_limited(self, node: RPCNode, retry_after: float) -> None:
+        """Temporarily remove a rate-limited node from active selection."""
+        with self.lock:
+            node.rate_limited_until = time.monotonic() + max(0.0, retry_after)
+            node.healthy = False
+            node.penalty = float("inf")
+            self._recalculate_best_node()
+
     async def mark_node_failed_async(self, node: RPCNode) -> None:
         self.mark_node_failed(node)
 
     def _recalculate_best_node(self) -> None:
         with self.lock:
+            now = time.monotonic()
+            for node in self.nodes:
+                if node.rate_limited_until and node.rate_limited_until <= now:
+                    node.rate_limited_until = 0.0
+                    node.healthy = True
+                    node.penalty = 0.0
+
             # Recalculate block drift D relative to max block number observed
             max_block = max([n.head_block_number for n in self.nodes if n.healthy] or [0])
             for n in self.nodes:
