@@ -68,7 +68,12 @@ class NodePoolManager:
     def stop_monitoring(self) -> None:
         with self.lock:
             self._stop_event.set()
-            self._monitor_thread = None
+            monitor_thread = self._monitor_thread
+        if monitor_thread is not None and monitor_thread is not threading.current_thread():
+            monitor_thread.join()
+        with self.lock:
+            if self._monitor_thread is monitor_thread:
+                self._monitor_thread = None
 
     def close(self) -> None:
         self.stop_monitoring()

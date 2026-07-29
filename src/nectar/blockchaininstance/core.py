@@ -258,7 +258,9 @@ class BlockChainInstance:
             from nectarapi.pool import NodePoolManager
             from nectarapi.transports import FailoverAsyncTransport, FailoverSyncTransport
 
-            self.pool_manager = NodePoolManager(node_list)
+            self.pool_manager = NodePoolManager(
+                node_list, monitor_interval=kwargs.get("monitor_interval")
+            )
             if self.rpc and hasattr(self.rpc, "nodes"):
                 self.rpc.nodes.pool_manager = self.pool_manager
             self.sync_transport = FailoverSyncTransport(
