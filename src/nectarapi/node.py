@@ -59,6 +59,9 @@ class Nodes(list):
 
         from .pool import NodePoolManager
 
+        if self.pool_manager is not None:
+            self.pool_manager.close()
+
         # Build url list directly from the list elements without using our custom iterator
         raw_urls = [self[i].url for i in range(len(self))]
         self.pool_manager = NodePoolManager(raw_urls, monitor_interval=self.monitor_interval)
