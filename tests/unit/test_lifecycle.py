@@ -49,7 +49,14 @@ def test_graphene_rpc_close_is_hard_no_reconnect():
     with pytest.raises(RPCClosed):
         rpc.request_send(b"{}")
     with pytest.raises(RPCClosed):
-        rpc.rpcexec({"jsonrpc": "2.0", "method": "condenser_api.get_dynamic_global_properties", "params": [], "id": 1})
+        rpc.rpcexec(
+            {
+                "jsonrpc": "2.0",
+                "method": "condenser_api.get_dynamic_global_properties",
+                "params": [],
+                "id": 1,
+            }
+        )
 
 
 def test_async_graphene_rpc_aclose_is_hard_close():
