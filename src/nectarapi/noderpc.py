@@ -50,11 +50,13 @@ class NodeRPC(GrapheneRPC):
             payload (dict or list): JSON-RPC payload to send (method, params, id, etc.).
 
         Raises:
+            RPCClosed: if the client was intentionally closed.
             RPCConnection: if no RPC URL is configured (connection not established).
             CallRetriesReached: when the node-manager's retry budget is exhausted and no alternative node can be used.
             RPCError: when the remote node returns an RPC error that is not recoverable by retries/switching.
             Exception: any other unexpected exception raised by the underlying RPC call is propagated.
         """
+        self._ensure_open()
         if self.url is None:
             raise exceptions.RPCConnection("RPC is not connected!")
         reply = super().rpcexec(payload)
@@ -96,6 +98,7 @@ class AsyncNodeRPC(AsyncGrapheneRPC):
         """
         Execute an RPC call with node-aware retry and Hive-specific error handling asynchronously.
         """
+        self._ensure_open()
         if self.url is None:
             raise exceptions.RPCConnection("RPC is not connected!")
         reply = await super().rpcexec_async(payload)

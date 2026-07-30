@@ -567,11 +567,13 @@ class GrapheneRPC:
             The RPC `result` (any) for a single request, or a list of results for a batch response.
 
         Raises:
+            RPCClosed: if the client was intentionally closed.
             WorkingNodeMissing: if no working nodes are available.
             RPCConnection: if the client is not connected to any node.
             RPCError: for server-reported errors or unexpected / non-JSON responses that indicate an RPC failure.
             KeyboardInterrupt: if execution is interrupted by the user.
         """
+        self._ensure_open()
         log.debug(f"Payload: {json.dumps(payload)}")
         if self.nodes.working_nodes_count == 0:
             raise WorkingNodeMissing("No working nodes available.")
@@ -841,6 +843,7 @@ class AsyncGrapheneRPC(GrapheneRPC):
         """
         Execute the given JSON-RPC payload asynchronously.
         """
+        self._ensure_open()
         log.debug(f"Payload: {json.dumps(payload)}")
         if self.nodes.working_nodes_count == 0:
             raise WorkingNodeMissing("No working nodes available.")
@@ -918,12 +921,37 @@ class AsyncGrapheneRPC(GrapheneRPC):
             raise RPCError(f"Unexpected response format: {ret}")
 
     async def aclose(self) -> None:
-        """Close the per-instance asynchronous failover session."""
+        """
+        Fully tear down this async RPC client (hard-close).
+
+        Mirrors :meth:`GrapheneRPC.close`: marks closed, stops NodePoolManager
+        monitors, and acloses the per-instance async failover session. Safe to
+        call more than once.
+        """
+        self._closed = True
+
+        try:
+            nodes = getattr(self, "nodes", None)
+            pool_mgr = getattr(nodes, "pool_manager", None) if nodes is not None else None
+            if pool_mgr is None:
+                pool_mgr = self.__dict__.get("_failover_pool_manager")
+            if pool_mgr is not None:
+                try:
+                    pool_mgr.close()
+                except Exception:
+                    log.debug("Error stopping NodePoolManager during aclose", exc_info=True)
+        except Exception:
+            log.debug("Error resolving pool manager during aclose", exc_info=True)
+
         session = self.__dict__.pop("_failover_session", None)
         self.__dict__.pop("_failover_pool_manager", None)
         if session is not None:
-            await session.aclose()
+            try:
+                await session.aclose()
+            except Exception:
+                log.debug("Error aclosing failover session", exc_info=True)
         self.session = None
+        self.url = None
 
     def __getattr__(self, name):
         """Map all methods to RPC calls and pass through the arguments asynchronously."""

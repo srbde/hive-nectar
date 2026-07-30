@@ -5,7 +5,7 @@ import pytest
 
 from nectar.blockchaininstance.core import BlockChainInstance
 from nectarapi.exceptions import RPCClosed, WorkingNodeMissing
-from nectarapi.graphenerpc import GrapheneRPC
+from nectarapi.graphenerpc import AsyncGrapheneRPC, GrapheneRPC
 from nectarapi.node import Nodes
 from nectarapi.pool import NodePoolManager
 
@@ -48,6 +48,45 @@ def test_graphene_rpc_close_is_hard_no_reconnect():
         rpc.next()
     with pytest.raises(RPCClosed):
         rpc.request_send(b"{}")
+    with pytest.raises(RPCClosed):
+        rpc.rpcexec({"jsonrpc": "2.0", "method": "condenser_api.get_dynamic_global_properties", "params": [], "id": 1})
+
+
+def test_async_graphene_rpc_aclose_is_hard_close():
+    """AsyncGrapheneRPC.aclose must hard-close (not only drop the session)."""
+    rpc = AsyncGrapheneRPC.__new__(AsyncGrapheneRPC)
+    rpc._closed = False
+    rpc.url = "https://api.hive.blog"
+    session = AsyncMock()
+    rpc.session = session
+    rpc._failover_session = session
+    pool_mgr = MagicMock()
+    nodes = MagicMock()
+    nodes.pool_manager = pool_mgr
+    rpc.nodes = nodes
+
+    asyncio.run(rpc.aclose())
+
+    assert rpc.closed is True
+    assert rpc.session is None
+    assert rpc.url is None
+    pool_mgr.close.assert_called_once_with()
+    session.aclose.assert_awaited_once()
+    assert "_failover_session" not in rpc.__dict__
+
+    with pytest.raises(RPCClosed):
+        rpc.rpcconnect()
+    with pytest.raises(RPCClosed):
+        asyncio.run(
+            rpc.rpcexec_async(
+                {
+                    "jsonrpc": "2.0",
+                    "method": "condenser_api.get_dynamic_global_properties",
+                    "params": [],
+                    "id": 1,
+                }
+            )
+        )
 
 
 def test_graphene_rpc_close_is_idempotent():

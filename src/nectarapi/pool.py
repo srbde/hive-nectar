@@ -40,7 +40,7 @@ class NodePoolManager:
         self._active_node = self.nodes[0]
         self._recalculate_best_node()
 
-        # Default off: background NodePoolMonitor probes open sockets and keep
+        # Default off: background NodePoolMonitor probes open sockets and keeps
         # threads alive for the life of each multi-node client. Long-running
         # apps that construct many short-lived Hive/RPC instances leak FDs when
         # the default was 30s. Opt in with monitor_interval>0 (e.g. 30).

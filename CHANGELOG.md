@@ -4,7 +4,8 @@
 
 ### Fixes (long-running client lifecycle)
 
-- **Hard close**: `GrapheneRPC.close()` / `aclose()` now mark the client closed. Subsequent `rpcconnect()`, `next()`, and request sends raise `RPCClosed` instead of silently recreating sessions (which leaked FDs under rebuild loops).
+- **Hard close**: `GrapheneRPC.close()` / `aclose()` now mark the client closed. Subsequent `rpcconnect()`, `next()`, `rpcexec()`, and request sends raise `RPCClosed` instead of silently recreating sessions (which leaked FDs under rebuild loops).
+- **Async hard close**: `AsyncGrapheneRPC.aclose()` matches sync semantics (sets `_closed`, stops `NodePoolManager`, acloses the failover session) instead of only dropping the httpx client.
 - **Monitor teardown on RPC close**: `GrapheneRPC.close()` stops the associated `NodePoolManager` / `NodePoolMonitor` thread. Previously only `BlockChainInstance.close()` stopped monitors, so apps that closed `rpc` alone left background probe threads running.
 - **Safe node iteration after teardown**: `Nodes.__next__` raises `WorkingNodeMissing` when `pool_manager` is `None` instead of `AttributeError`.
 - **Monitor default off**: `NodePoolManager` default `monitor_interval` is `0` (disabled). Background monitoring is opt-in via `Hive(..., monitor_interval=30)` (or equivalent). The previous production default of 30s caused thread/FD growth when many short-lived multi-node clients were created; the pytest-only auto-disable was removed in favor of a single explicit default.
