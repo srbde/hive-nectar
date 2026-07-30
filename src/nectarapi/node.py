@@ -3,7 +3,7 @@ import re
 import time
 from typing import Any, Union
 
-from .exceptions import CallRetriesReached, NumRetriesReached
+from .exceptions import CallRetriesReached, NumRetriesReached, WorkingNodeMissing
 
 log = logging.getLogger(__name__)
 
@@ -74,6 +74,11 @@ class Nodes(list):
             return self.url
         if len(self) == 0:
             raise StopIteration
+        if self.pool_manager is None:
+            # After close / partial teardown, never AttributeError on None.
+            raise WorkingNodeMissing(
+                "Node pool manager is not available (client closed or not initialized)"
+            )
 
         best_node = self.pool_manager.get_active_node()
         # Update current_node_index for compatibility

@@ -1,20 +1,65 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from nectar.blockchaininstance.core import BlockChainInstance
+from nectarapi.exceptions import RPCClosed, WorkingNodeMissing
 from nectarapi.graphenerpc import GrapheneRPC
+from nectarapi.node import Nodes
+from nectarapi.pool import NodePoolManager
 
 
-def test_graphene_rpc_close_releases_only_per_instance_session():
+def test_graphene_rpc_close_releases_session_and_stops_pool_monitor():
     rpc = GrapheneRPC.__new__(GrapheneRPC)
+    rpc._closed = False
     rpc.session = session = MagicMock()
     rpc._failover_session = session
+    rpc.url = "https://api.hive.blog"
+    pool_mgr = MagicMock()
+    nodes = MagicMock()
+    nodes.pool_manager = pool_mgr
+    rpc.nodes = nodes
 
     rpc.close()
 
     session.close.assert_called_once_with()
+    pool_mgr.close.assert_called_once_with()
     assert rpc.session is None
+    assert rpc.url is None
+    assert rpc.closed is True
     assert "_failover_session" not in rpc.__dict__
+
+
+def test_graphene_rpc_close_is_hard_no_reconnect():
+    rpc = GrapheneRPC.__new__(GrapheneRPC)
+    rpc._closed = False
+    rpc.session = MagicMock()
+    rpc.nodes = MagicMock()
+    rpc.nodes.pool_manager = MagicMock()
+    rpc.nodes.working_nodes_count = 2
+    rpc.url = "https://api.hive.blog"
+
+    rpc.close()
+
+    with pytest.raises(RPCClosed):
+        rpc.rpcconnect()
+    with pytest.raises(RPCClosed):
+        rpc.next()
+    with pytest.raises(RPCClosed):
+        rpc.request_send(b"{}")
+
+
+def test_graphene_rpc_close_is_idempotent():
+    rpc = GrapheneRPC.__new__(GrapheneRPC)
+    rpc._closed = False
+    rpc.session = None
+    rpc.nodes = MagicMock()
+    rpc.nodes.pool_manager = MagicMock()
+
+    rpc.close()
+    rpc.close()
+    assert rpc.closed is True
 
 
 def test_blockchain_instance_close_releases_sync_and_async_resources():
@@ -58,3 +103,29 @@ def test_blockchain_instance_aclose_releases_async_rpc_resources():
     client.close.assert_called_once_with()
     async_client.aclose.assert_awaited_once_with()
     pool_manager.close.assert_called_once_with()
+
+
+def test_nodes_next_without_pool_manager_raises_clear_error():
+    nodes = Nodes(["https://a.example", "https://b.example"], num_retries=1, num_retries_call=1)
+    nodes.pool_manager = None
+    with pytest.raises(WorkingNodeMissing, match="pool manager is not available"):
+        next(nodes)
+
+
+def test_default_monitor_interval_is_disabled():
+    pm = NodePoolManager(["https://api.hive.blog", "https://api2.hive.blog"])
+    assert pm.monitor_interval == 0.0
+    assert pm._monitor_thread is None
+    pm.close()
+
+
+def test_explicit_monitor_interval_starts_thread():
+    pm = NodePoolManager(
+        ["https://api.hive.blog", "https://api2.hive.blog"],
+        monitor_interval=30.0,
+    )
+    assert pm.monitor_interval == 30.0
+    assert pm._monitor_thread is not None
+    assert pm._monitor_thread.is_alive()
+    pm.close()
+    assert pm._monitor_thread is None or not pm._monitor_thread.is_alive()

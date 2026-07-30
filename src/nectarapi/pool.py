@@ -40,15 +40,14 @@ class NodePoolManager:
         self._active_node = self.nodes[0]
         self._recalculate_best_node()
 
-        import sys
-
+        # Default off: background NodePoolMonitor probes open sockets and keep
+        # threads alive for the life of each multi-node client. Long-running
+        # apps that construct many short-lived Hive/RPC instances leak FDs when
+        # the default was 30s. Opt in with monitor_interval>0 (e.g. 30).
         if monitor_interval is None:
-            if "pytest" in sys.modules or "unittest" in sys.modules:
-                self.monitor_interval = 0.0
-            else:
-                self.monitor_interval = 30.0
+            self.monitor_interval = 0.0
         else:
-            self.monitor_interval = monitor_interval
+            self.monitor_interval = float(monitor_interval)
 
         self._stop_event = threading.Event()
         self._monitor_thread = None
