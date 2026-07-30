@@ -34,6 +34,17 @@ class RPCConnection(NectarApiException):
     pass
 
 
+class RPCClosed(RPCConnection):
+    """Raised when an RPC client is used after ``close()`` / ``aclose()``.
+
+    Long-running apps intentionally close clients on rebuild/rotate. A soft
+    reconnect after close recreates sessions and can leak FDs/threads; callers
+    should construct a new client instead of reusing a closed one.
+    """
+
+    pass
+
+
 class RPCError(NectarApiException):
     """RPCError Exception."""
 

@@ -18,6 +18,7 @@ from .exceptions import (
     InvalidParameters,
     NoApiWithName,
     NoMethodWithName,
+    RPCClosed,
     RPCConnection,
     RPCError,
     RPCErrorDoRetry,
@@ -179,14 +180,22 @@ class GrapheneRPC:
         self.url = None
         self.session: httpx2.Client | None = None
         self.rpc_queue = []
+        # Hard-closed after close()/aclose(); refuse reconnect (see RPCClosed).
+        self._closed = False
         if kwargs.get("autoconnect", True):
             self.rpcconnect()
+
+    def _ensure_open(self) -> None:
+        """Raise if this client was intentionally closed."""
+        if getattr(self, "_closed", False):
+            raise RPCClosed("RPC client is closed; create a new client instead of reconnecting")
 
     def _handle_transport_error(self, exc: Exception, *, call_retry: bool = False) -> None:
         """
         Centralized transport error handling: increment counters, defer to node retry policy,
         and reconnect to the next node.
         """
+        self._ensure_open()
         self.nodes.increase_error_cnt()
         self.nodes.sleep_and_check_retries(str(exc), sleep=False, call_retry=call_retry)
         self.rpcconnect()
@@ -207,6 +216,11 @@ class GrapheneRPC:
     def error_cnt(self) -> int:
         return self.nodes.error_cnt
 
+    @property
+    def closed(self) -> bool:
+        """True after :meth:`close` / :meth:`aclose` has been called."""
+        return bool(getattr(self, "_closed", False))
+
     def get_request_id(self) -> int:
         """Get request id."""
         self._request_id += 1
@@ -216,6 +230,7 @@ class GrapheneRPC:
         """
         Advance to the next available RPC node and attempt to (re)connect.
         """
+        self._ensure_open()
         self.rpcconnect()
 
     def rpcconnect(self, next_url: bool = True) -> None:
@@ -228,9 +243,11 @@ class GrapheneRPC:
             next_url (bool): If True, advance to the next node before attempting connection; if False, retry the current node.
 
         Raises:
+            RPCClosed: If :meth:`close` was already called on this client.
             RPCError: When a get_config probe returns no properties (connection reached but no config received).
             KeyboardInterrupt: Propagated if the operation is interrupted by the user.
         """
+        self._ensure_open()
         if self.nodes.working_nodes_count == 0:
             return
         while True:
@@ -297,6 +314,7 @@ class GrapheneRPC:
         Raises:
             UnauthorizedError: If the HTTP response status code is 401 (Unauthorized).
         """
+        self._ensure_open()
         if self.session is None:
             raise RPCConnection("Session must be initialized")
         if self.url is None:
@@ -549,11 +567,13 @@ class GrapheneRPC:
             The RPC `result` (any) for a single request, or a list of results for a batch response.
 
         Raises:
+            RPCClosed: if the client was intentionally closed.
             WorkingNodeMissing: if no working nodes are available.
             RPCConnection: if the client is not connected to any node.
             RPCError: for server-reported errors or unexpected / non-JSON responses that indicate an RPC failure.
             KeyboardInterrupt: if execution is interrupted by the user.
         """
+        self._ensure_open()
         log.debug(f"Payload: {json.dumps(payload)}")
         if self.nodes.working_nodes_count == 0:
             raise WorkingNodeMissing("No working nodes available.")
@@ -640,12 +660,44 @@ class GrapheneRPC:
         raise RPCError(error_message)
 
     def close(self) -> None:
-        """Close the per-instance failover session, if one was created."""
+        """
+        Fully tear down this RPC client for long-running process safety.
+
+        - Marks the client hard-closed (subsequent ``rpcconnect`` / RPC raises
+          :class:`RPCClosed` instead of silently recreating a session).
+        - Stops ``NodePoolManager`` background monitors (``GrapheneRPC.close``
+          previously left ``NodePoolMonitor`` threads running).
+        - Closes the per-instance failover httpx session when present.
+
+        Does not close the process-wide shared httpx client used for single-node
+        setups. Safe to call more than once.
+        """
+        self._closed = True
+
+        # Stop background health monitors before dropping the session so probe
+        # threads do not keep sockets open against a half-closed client.
+        try:
+            nodes = getattr(self, "nodes", None)
+            pool_mgr = getattr(nodes, "pool_manager", None) if nodes is not None else None
+            if pool_mgr is None:
+                pool_mgr = self.__dict__.get("_failover_pool_manager")
+            if pool_mgr is not None:
+                try:
+                    pool_mgr.close()
+                except Exception:
+                    log.debug("Error stopping NodePoolManager during close", exc_info=True)
+        except Exception:
+            log.debug("Error resolving pool manager during close", exc_info=True)
+
         session = self.__dict__.pop("_failover_session", None)
         self.__dict__.pop("_failover_pool_manager", None)
         if session is not None:
-            session.close()
+            try:
+                session.close()
+            except Exception:
+                log.debug("Error closing failover session", exc_info=True)
         self.session = None
+        self.url = None
 
     async def aclose(self) -> None:
         """Async-compatible cleanup for synchronous RPC clients."""
@@ -705,6 +757,7 @@ class AsyncGrapheneRPC(GrapheneRPC):
         """
         Selects and establishes connection to an available RPC node asynchronously.
         """
+        self._ensure_open()
         if self.nodes.working_nodes_count == 0:
             return
         while True:
@@ -765,6 +818,7 @@ class AsyncGrapheneRPC(GrapheneRPC):
         """
         Send the prepared RPC payload to the currently connected node via HTTP POST asynchronously.
         """
+        self._ensure_open()
         if self.session is None:
             raise RPCConnection("Session must be initialized")
         if self.url is None:
@@ -789,6 +843,7 @@ class AsyncGrapheneRPC(GrapheneRPC):
         """
         Execute the given JSON-RPC payload asynchronously.
         """
+        self._ensure_open()
         log.debug(f"Payload: {json.dumps(payload)}")
         if self.nodes.working_nodes_count == 0:
             raise WorkingNodeMissing("No working nodes available.")
@@ -866,12 +921,37 @@ class AsyncGrapheneRPC(GrapheneRPC):
             raise RPCError(f"Unexpected response format: {ret}")
 
     async def aclose(self) -> None:
-        """Close the per-instance asynchronous failover session."""
+        """
+        Fully tear down this async RPC client (hard-close).
+
+        Mirrors :meth:`GrapheneRPC.close`: marks closed, stops NodePoolManager
+        monitors, and acloses the per-instance async failover session. Safe to
+        call more than once.
+        """
+        self._closed = True
+
+        try:
+            nodes = getattr(self, "nodes", None)
+            pool_mgr = getattr(nodes, "pool_manager", None) if nodes is not None else None
+            if pool_mgr is None:
+                pool_mgr = self.__dict__.get("_failover_pool_manager")
+            if pool_mgr is not None:
+                try:
+                    pool_mgr.close()
+                except Exception:
+                    log.debug("Error stopping NodePoolManager during aclose", exc_info=True)
+        except Exception:
+            log.debug("Error resolving pool manager during aclose", exc_info=True)
+
         session = self.__dict__.pop("_failover_session", None)
         self.__dict__.pop("_failover_pool_manager", None)
         if session is not None:
-            await session.aclose()
+            try:
+                await session.aclose()
+            except Exception:
+                log.debug("Error aclosing failover session", exc_info=True)
         self.session = None
+        self.url = None
 
     def __getattr__(self, name):
         """Map all methods to RPC calls and pass through the arguments asynchronously."""

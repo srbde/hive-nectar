@@ -151,7 +151,8 @@ class BlockChainInstance:
                 - bundle (bool): If True, enable bundling of operations instead of immediate broadcast.
                 - blocking (str|bool): Wait mode for broadcasts ("head" or "irreversible").
                 - custom_chains (dict): Custom chain definitions.
-                - monitor_interval (float|None): Background node-health monitor interval; use 0 to disable.
+                - monitor_interval (float|None): Background node-health monitor interval in seconds.
+                  Default is disabled (0). Pass a positive value (e.g. 30) to opt in.
                 - use_ledger (bool): If True, enable Ledger Nano signing.
                 - path (str): BIP32 path to derive pubkey from when using Ledger.
                 - config_store: Configuration store object (defaults to the global default).
