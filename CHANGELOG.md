@@ -10,6 +10,13 @@
 - **Safe node iteration after teardown**: `Nodes.__next__` raises `WorkingNodeMissing` when `pool_manager` is `None` instead of `AttributeError`.
 - **Monitor default off**: `NodePoolManager` default `monitor_interval` is `0` (disabled). Background monitoring is opt-in via `Hive(..., monitor_interval=30)` (or equivalent). The previous production default of 30s caused thread/FD growth when many short-lived multi-node clients were created; the pytest-only auto-disable was removed in favor of a single explicit default.
 
+### Fixes (corrupt SQLite database fallback)
+
+- **Corrupt SQLite File Fallback**: `SQLiteStore` (and subclasses like `SqliteConfigurationStore` and `SqliteEncryptedKeyStore`) now catches `sqlite3.DatabaseError` (e.g. `file is not a database`, `database disk image is malformed`) in addition to `OperationalError` and `OSError` (#64).
+- **Corrupt File Quarantine**: When an existing database file on disk is corrupted, it (and any `-wal` / `-shm` auxiliary files) is renamed aside to `.corrupted.<timestamp>`, allowing the current process to fall back to an in-memory database and subsequent processes or container restarts to cleanly initialize a fresh database on disk (#64).
+- **Runtime Query Fallback**: Storage/database errors during `sql_fetchone`, `sql_fetchall`, and `sql_execute` gracefully trigger the memory fallback without crashing long-running daemons, while standard query errors (syntax errors, column mismatches, constraint violations) continue to raise normally (#64).
+- **In-Memory Configuration Propagation**: `SQLiteFile` automatically uses in-memory SQLite storage when passed a configuration instance that already fell back to memory, ensuring wallet key stores and configuration stores seamlessly share the in-memory database (#64).
+
 ## 1.0.6 - 2026-06-20
 
 ### Features

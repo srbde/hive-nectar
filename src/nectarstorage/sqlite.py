@@ -28,6 +28,28 @@ def get_user_data_dir(appname: str, appauthor: str) -> Path:
 timeformat = "%Y%m%d-%H%M%S"
 
 
+def _is_storage_corruption_error(e: BaseException) -> bool:
+    """Determine whether an exception represents a storage/disk/database corruption issue."""
+    if isinstance(e, OSError):
+        return True
+    if type(e) is sqlite3.DatabaseError:
+        return True
+    if isinstance(e, sqlite3.OperationalError):
+        msg = str(e).lower()
+        storage_phrases = (
+            "unable to open database file",
+            "disk i/o error",
+            "readonly",
+            "malformed",
+            "not a database",
+            "corrupt",
+            "permission",
+            "io error",
+        )
+        return any(phrase in msg for phrase in storage_phrases)
+    return False
+
+
 class SQLiteFile:
     """This class ensures that the user's data is stored in its OS
     preotected user directory:
@@ -68,6 +90,13 @@ class SQLiteFile:
             self.storageDatabase = f"{appname}.sqlite"
 
         self.use_memory = False
+        config = kwargs.get("config")
+        use_memory_config = config is not None and getattr(config, "use_memory", False)
+        if kwargs.get("use_memory", False) or use_memory_config:
+            self.use_memory = True
+            self.sqlite_file = f"file:{self.storageDatabase}?mode=memory&cache=shared"
+            return
+
         try:
             if not self.data_dir.is_dir():  # pragma: no cover
                 self.data_dir.mkdir(parents=True)
@@ -99,18 +128,21 @@ class SQLiteFile:
         src_path = Path(src)
         if not src_path.is_file():
             return
-        connection = sqlite3.connect(str(self.sqlite_file))
         try:
-            cursor = connection.cursor()
-            # Lock database before making a backup
-            cursor.execute("begin immediate")
-            # Make new backup file
-            shutil.copyfile(str(src), str(dst))
-            log.info(f"Creating {dst}...")
-            # Unlock database
-            connection.rollback()
-        finally:
-            connection.close()
+            connection = sqlite3.connect(str(self.sqlite_file))
+            try:
+                cursor = connection.cursor()
+                # Lock database before making a backup
+                cursor.execute("begin immediate")
+                # Make new backup file
+                shutil.copyfile(str(src), str(dst))
+                log.info(f"Creating {dst}...")
+                # Unlock database
+                connection.rollback()
+            finally:
+                connection.close()
+        except (sqlite3.DatabaseError, OSError) as e:
+            log.warning(f"Could not copy database {src} to {dst}: {e}")
 
     def recover_with_latest_backup(self, backupdir: str | Path = "backups") -> None:
         """Replace database with latest backup"""
@@ -174,43 +206,76 @@ class SQLiteCommon:
     use_memory: bool
 
     def sql_fetchone(self, query: tuple[str, tuple]) -> tuple | None:
-        connection = sqlite3.connect(str(self.sqlite_file), uri=getattr(self, "use_memory", False))
         try:
-            cursor = connection.cursor()
-            cursor.execute(*query)
-            result = cursor.fetchone()
-        finally:
-            connection.close()
-        return result
+            connection = sqlite3.connect(
+                str(self.sqlite_file), uri=getattr(self, "use_memory", False)
+            )
+            try:
+                cursor = connection.cursor()
+                cursor.execute(*query)
+                result = cursor.fetchone()
+            finally:
+                connection.close()
+            return result
+        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError) as e:
+            if (
+                not getattr(self, "use_memory", False)
+                and hasattr(self, "_fallback_to_memory")
+                and _is_storage_corruption_error(e)
+            ):
+                self._fallback_to_memory(e)
+                return self.sql_fetchone(query)
+            raise
 
     def sql_fetchall(self, query: tuple[str, tuple]) -> list:
-        connection = sqlite3.connect(str(self.sqlite_file), uri=getattr(self, "use_memory", False))
         try:
-            cursor = connection.cursor()
-            cursor.execute(*query)
-            results = cursor.fetchall()
-        finally:
-            connection.close()
-        return results
+            connection = sqlite3.connect(
+                str(self.sqlite_file), uri=getattr(self, "use_memory", False)
+            )
+            try:
+                cursor = connection.cursor()
+                cursor.execute(*query)
+                results = cursor.fetchall()
+            finally:
+                connection.close()
+            return results
+        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError) as e:
+            if (
+                not getattr(self, "use_memory", False)
+                and hasattr(self, "_fallback_to_memory")
+                and _is_storage_corruption_error(e)
+            ):
+                self._fallback_to_memory(e)
+                return self.sql_fetchall(query)
+            raise
 
     def sql_execute(self, query: tuple[str, tuple], lastid: bool = False) -> int | None:
-        connection = sqlite3.connect(str(self.sqlite_file), uri=getattr(self, "use_memory", False))
         try:
-            cursor = connection.cursor()
-            cursor.execute(*query)
-            connection.commit()
-        except Exception:
-            connection.close()
-            raise
-        ret = None
-        try:
-            if lastid:
+            connection = sqlite3.connect(
+                str(self.sqlite_file), uri=getattr(self, "use_memory", False)
+            )
+            try:
                 cursor = connection.cursor()
-                cursor.execute("SELECT last_insert_rowid();")
-                ret = cursor.fetchone()[0]
-        finally:
-            connection.close()
-        return ret
+                cursor.execute(*query)
+                connection.commit()
+                ret = None
+                if lastid:
+                    cursor.execute("SELECT last_insert_rowid();")
+                    row = cursor.fetchone()
+                    if row:
+                        ret = row[0]
+                return ret
+            finally:
+                connection.close()
+        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError) as e:
+            if (
+                not getattr(self, "use_memory", False)
+                and hasattr(self, "_fallback_to_memory")
+                and _is_storage_corruption_error(e)
+            ):
+                self._fallback_to_memory(e)
+                return self.sql_execute(query, lastid=lastid)
+            raise
 
 
 class SQLiteStore(SQLiteFile, SQLiteCommon, StoreInterface):
@@ -249,16 +314,65 @@ class SQLiteStore(SQLiteFile, SQLiteCommon, StoreInterface):
         try:
             if not self.exists():  # pragma: no cover
                 self.create()
-        except (sqlite3.OperationalError, OSError) as e:
-            log.warning(
-                f"Database connection or creation failed for file {self.sqlite_file}: {e}. "
-                "Falling back to an in-memory SQLite database."
-            )
-            self.use_memory = True
-            self.sqlite_file = f"file:{self.storageDatabase}?mode=memory&cache=shared"
-            self._keep_alive = sqlite3.connect(str(self.sqlite_file), uri=True)
-            if not self.exists():
-                self.create()
+        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError) as e:
+            if not getattr(self, "use_memory", False) and _is_storage_corruption_error(e):
+                self._fallback_to_memory(e)
+            else:
+                raise
+
+    def _rename_corrupt_files(self) -> None:
+        """Rename corrupted database and auxiliary files aside to allow future clean start."""
+        if getattr(self, "use_memory", False):
+            return
+        sqlite_file = getattr(self, "sqlite_file", None)
+        if not sqlite_file:
+            return
+        try:
+            str_path = str(sqlite_file)
+            if str_path.startswith("file:"):
+                return
+            file_path = Path(str_path)
+            if not file_path.is_file():
+                return
+            timestamp = datetime.now(timezone.utc).strftime(timeformat)
+            corrupt_suffix = f".corrupted.{timestamp}"
+
+            target_path = file_path.with_name(f"{file_path.name}{corrupt_suffix}")
+            try:
+                file_path.rename(target_path)
+                log.warning(f"Renamed corrupted database file {file_path} to {target_path}")
+            except OSError as err:
+                log.warning(f"Could not rename corrupted database file {file_path}: {err}")
+
+            for aux_ext in ("-wal", "-shm"):
+                aux_path = file_path.parent / f"{file_path.name}{aux_ext}"
+                if aux_path.is_file():
+                    aux_target = aux_path.with_name(f"{aux_path.name}{corrupt_suffix}")
+                    try:
+                        aux_path.rename(aux_target)
+                        log.warning(f"Renamed corrupted auxiliary file {aux_path} to {aux_target}")
+                    except OSError:
+                        pass
+        except Exception as e:
+            log.warning(f"Failed while attempting to rename corrupted database files: {e}")
+
+    def _fallback_to_memory(self, error: Exception | None = None) -> None:
+        """Fallback to an in-memory SQLite database when disk storage fails or is corrupt."""
+        log.warning(
+            f"Database connection or creation failed for file {self.sqlite_file}: {error}. "
+            "Falling back to an in-memory SQLite database."
+        )
+        self._rename_corrupt_files()
+        if hasattr(self, "_keep_alive"):
+            try:
+                self._keep_alive.close()
+            except Exception:
+                pass
+        self.use_memory = True
+        self.sqlite_file = f"file:{self.storageDatabase}?mode=memory&cache=shared"
+        self._keep_alive = sqlite3.connect(str(self.sqlite_file), uri=True)
+        if not self.exists():
+            self.create()
 
     def _haveKey(self, key: str) -> bool:
         """Is the key `key` available?"""
@@ -385,3 +499,14 @@ class SQLiteStore(SQLiteFile, SQLiteCommon, StoreInterface):
             (),
         )
         self.sql_execute(query)
+
+    def close(self) -> None:
+        """Close keep-alive connection if active."""
+        if hasattr(self, "_keep_alive"):
+            try:
+                self._keep_alive.close()
+            except Exception:
+                pass
+
+    def __del__(self) -> None:
+        self.close()
