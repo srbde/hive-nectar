@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 
+import pytest
 from ruamel.yaml import YAML
 
 from nectar.utils import (
@@ -46,8 +47,10 @@ def test_construct_authorpermvoter():
 
 
 def test_assets_from_string():
-    assert assets_from_string("USD:BTS") == ["USD", "BTS"]
-    assert assets_from_string("BTSBOTS.S1:BTS") == ["BTSBOTS.S1", "BTS"]
+    with pytest.deprecated_call():
+        assert assets_from_string("USD:BTS") == ["USD", "BTS"]
+    with pytest.deprecated_call():
+        assert assets_from_string("BTSBOTS.S1:BTS") == ["BTSBOTS.S1", "BTS"]
 
 
 def test_parse_asset_pair():

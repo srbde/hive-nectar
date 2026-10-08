@@ -499,3 +499,14 @@ class SQLiteStore(SQLiteFile, SQLiteCommon, StoreInterface):
             (),
         )
         self.sql_execute(query)
+
+    def close(self) -> None:
+        """Close keep-alive connection if active."""
+        if hasattr(self, "_keep_alive"):
+            try:
+                self._keep_alive.close()
+            except Exception:
+                pass
+
+    def __del__(self) -> None:
+        self.close()

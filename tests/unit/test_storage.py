@@ -59,6 +59,13 @@ def test_hive_initialization_with_corrupt_database(tmp_path):
     assert hive2.wallet.store.use_memory is False
     assert corrupt_file.is_file()
 
+    hive.close()
+    hive2.close()
+    if hasattr(hive.config, "close"):
+        hive.config.close()
+    if hasattr(hive.wallet.store, "close"):
+        hive.wallet.store.close()
+
 
 def test_sqlite_store_programming_error_not_masked(tmp_path):
     import sqlite3
